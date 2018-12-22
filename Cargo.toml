@@ -1,0 +1,9 @@
+[package]
+name = "rust-mbe"
+version = "0.1.0"
+authors = ["Adrià Massanet <adria@codecontext.io>"]
+
+[dependencies]
+rocket = "0.4.0"
+web3 = "0.5.1"
+rustc-hex = "2.0.1"
