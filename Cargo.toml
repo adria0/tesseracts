@@ -7,3 +7,11 @@ authors = ["Adrià Massanet <adria@codecontext.io>"]
 rocket = "0.4.0"
 web3 = "0.5.1"
 rustc-hex = "2.0.1"
+handlebars = "1.1.0"
+rust-embed = "4.2.0"
+lazy_static = "1.2.0"
+serde = "1.0.82"
+serde_json = "1.0.33"
+serde_derive = "1.0.82"
+
+paritydb = { git = "https://github.com/paritytech/paritydb", branch = "master" }

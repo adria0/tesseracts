@@ -1,0 +1,10 @@
+<html>
+<style>body {font-family: Courier;}</style>
+<body>
+Block explorer<br>    
+=======================<br>    
+{{#each blocks}}
+    Block <a href={{block.link}}>{{block.text}}</a> TxCount {{tx_count}}<br>
+{{/each}}
+</body>
+</html>

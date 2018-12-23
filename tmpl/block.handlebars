@@ -1,0 +1,28 @@
+<html>
+<style>body {font-family: Courier;}</style>
+<body>
+Block explorer<br>    
+=======================<br>    
+<b>parent hash</b>      : {{parent_hash}}<br>
+<b>uncles hash</b>      : {{uncles_hash}}<br>
+<b>author</b>           : <a href={{author.link}}>{{author.text}}</a><br>
+<b>state root</b>       : {{state_root}}<br>
+<b>receipts root</b>    : {{receipts_root}}<br>
+<b>gas used</b>         : {{gas_used}}<br>
+<b>gas limit</b>        : {{gas_limit}}<br>
+<b>extra_data</b>       : {{extra_data}}<br>
+<b>timestamp</b>        : {{timestamp}}<br>
+<b>difficulty</b>       : {{difficulty}}<br>
+<b>total difficulty</b> : {{total_difficulty}}<br>
+<b>seal fields</b>      : {{seal_fields}}<br>
+<b>uncles</b>           : {{uncles}}<br>
+</b>transactions</b><br>
+{{#each txs}}
+&nbsp;&nbsp;
+    <a href={{shorttx.link}}>{{shorttx.text}}</a>
+    <a href={{from.link}}>{{from.text}}</a>&rarr;
+    <a href={{to.link}}>{{to.text}}</a>
+    {{shortdata}}</a><br>
+{{/each}}
+</body>
+</html>

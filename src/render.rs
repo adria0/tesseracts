@@ -10,86 +10,121 @@ use web3::futures::Future;
 use rustc_hex::{ToHex};
 use rocket::response::content;
 
+use serde_derive::Serialize;
+
 use state::*;
 
-pub trait HtmlRender {
-    fn html(&self) -> String;
-} 
+lazy_static! {
+    static ref GWEI   : U256 = U256::from_dec_str("1000000000").unwrap();
+    static ref FINNEY : U256 = U256::from_dec_str("100000000000000").unwrap();
+}
 
-impl HtmlRender for Address {
-    fn html(&self) -> String {
-        format!("<a_href=/0x{:x}>0x{:x}</a>",self,self)
+pub struct TransactionIdShort(pub TransactionId);
+pub struct GWei(pub U256);
+pub struct Ether(pub U256);
+
+#[derive(Serialize)]
+pub struct TextWithLink {
+    pub text : String,
+    pub link : Option<String>,
+}
+impl TextWithLink {
+    fn new_link(text : String, link: String) -> Self {
+        TextWithLink{text:text, link:Some(link)}
+    }
+    fn new_text(text : String) -> Self {
+        TextWithLink{text:text, link:None}
+    }
+    fn blank() -> Self {
+        TextWithLink{text:"".to_string(), link:None}
     }
 }
 
+pub trait HtmlRender {
+    fn html(&self) -> TextWithLink;
+} 
 
-pub struct BytesWithPadding(pub Bytes, pub u8);
-impl HtmlRender for BytesWithPadding {
-    fn html(&self) -> String {
-        let mut spaces = String::from("");
-        for _ in 0..(self.1) {
-            spaces.push(' ');
-        }
-        (self.0).0.as_slice()
-            .chunks(32).into_iter()
-            .map(|c| c.to_hex::<String>() )
-            .map(|c| format!("{}{}<br>",spaces,c))
-            .collect::<String>()
+impl HtmlRender for Address {
+    fn html(&self) -> TextWithLink {
+        TextWithLink::new_link(
+            format!("0x{:x}",self),
+            format!("/0x{:x}",self)
+        )
+    }
+}
+
+impl HtmlRender for Bytes {
+    fn html(&self) -> TextWithLink {
+        TextWithLink::new_text(
+            (self.0).as_slice()
+                .chunks(32).into_iter()
+                .map(|c| c.to_hex::<String>() )
+                .map(|c| format!("{},",c))
+                .collect::<String>()
+        )
     }
 }
 
 impl HtmlRender for Option<Address> {
-    fn html(&self) -> String {
-        self.map(|v| v.html()).unwrap_or("New contract".to_string())
+    fn html(&self) -> TextWithLink {
+        self.map(|v| v.html()).unwrap_or(
+            TextWithLink::new_text("New contract".to_string())
+        )
     }
 }
 
 impl HtmlRender for TransactionId {
-    fn html(&self) -> String {
+    fn html(&self) -> TextWithLink {
             match &self {
                 TransactionId::Hash(h) =>
-                    format!("<a_href=/0x{:x}>0x{:x} </a>",h,h),
-                _ => String::from("")
+                    TextWithLink::new_link(
+                        format!("0x{:x}",h),
+                        format!("/0x{:x}",h),
+                    ),
+                _ => unreachable!()
             }            
     }
 }
 
-pub struct TransactionIdShort(pub TransactionId);
 impl HtmlRender for TransactionIdShort {
-    fn html(&self) -> String {
+    fn html(&self) -> TextWithLink {
             match &self.0 {
                 TransactionId::Hash(h) => 
-                    format!("<a_href=/0x{:x}>0x{}</a>",
-                    h,
-                    format!("{:x}",h).chars().take(7).collect::<String>()),
-                _ => String::from("")
+                    TextWithLink::new_link(
+                        format!("0x{:x}",h).chars().take(7).collect::<String>(),
+                        format!("/0x{:x}",h),
+                    ),
+                _ => unreachable!()
             }            
     }
 }
 
-impl HtmlRender for BlockNumber {
-    fn html(&self) -> String {
+impl HtmlRender for BlockId {
+    fn html(&self) -> TextWithLink {
         match &self {
-           BlockNumber::Number(n) => format!("<a_href=/{}>{}</a>",n,n),
-            _ => String::from("")
+           BlockId::Number(BlockNumber::Number(n)) => 
+                TextWithLink::new_link(
+                    format!("{}",n),
+                    format!("/{}",n),
+                ),
+                _ => unreachable!()
         }
     }
 }
 
-
-pub struct GWei(pub U256);
 impl HtmlRender for GWei {
-    fn html(&self) -> String {
-        let gwei = U256::from_dec_str("1000000000").expect("invalid number");
-        format!("{} GWei ({})",self.0 / gwei,self.0 )
+    fn html(&self) -> TextWithLink {
+        TextWithLink::new_text(
+            format!("{} GWei ({})",self.0 / *GWEI,self.0 )
+        )
     }
 }
 
-pub struct Ether(pub U256);
 impl HtmlRender for Ether {
-    fn html(&self) -> String {
-        let finney = U256::from_dec_str("100000000000000").expect("invalid number");
-        format!("{} Finney ({})",self.0/finney,self.0 )
+    fn html(&self) -> TextWithLink {
+        TextWithLink::new_text(
+            format!("{} Finney ({})",self.0 / *FINNEY,self.0 )
+        )
     }
 }
 
@@ -101,86 +136,102 @@ pub fn page(innerhtml : &str) -> content::Html<String> {
     content::Html(html)
 }
 
-
-pub fn block_info(st : &State, id: BlockId) -> content::Html<String> {
-    let block = &st.web3.eth().block_with_txs(id).wait().unwrap().unwrap();
-    let mut html = String::from(""); 
-    html.push_str(&format!("parent hash      : {:?}<br>",block.parent_hash));
-    html.push_str(&format!("uncles hash      : {:?}<br>",block.uncles_hash));
-    html.push_str(&format!("author           : {}<br>",block.author.html()));
-    html.push_str(&format!("state root       : {:?}<br>",block.state_root));
-    html.push_str(&format!("receipts root    : {:?}<br>",block.receipts_root));
-    html.push_str(&format!("gas used         : {:?}<br>",block.gas_used));
-    html.push_str(&format!("gas limit        : {:?}<br>",block.gas_limit));
-    html.push_str(&format!("extra_data       : {:}{:}",block.extra_data.0.to_hex::<String>(),"<br>"));
-    html.push_str(&format!("timestamp        : {:?}<br>",block.timestamp));
-    html.push_str(&format!("difficulty       : {:?}<br>",block.difficulty));
-    html.push_str(&format!("total difficulty : {:?}<br>",block.total_difficulty));
-    html.push_str(&format!("seal fields      : {:?}<br>",block.seal_fields));
-    html.push_str(&format!("uncles           : {:?}<br><br>",block.uncles));
-    html.push_str(&format!("transactions<br>"));
+pub fn block_info(gs : &GlobalState, id: BlockId) -> content::Html<String> {
+    let ls = gs.create_local();
+    let block = ls.web3.eth().block_with_txs(id).wait().unwrap().unwrap();
+    
+    let mut txs = Vec::new();
     for tx in &block.transactions {
-        let data = tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
-        html.push_str(&format!(" {} {:42}→{:42} {}<br>",
-            TransactionIdShort(TransactionId::Hash(tx.hash)).html(),
-            tx.from.html(),
-            tx.to.html(),
-            data));
+        let shortdata = tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
+        txs.push(json!({
+            "shorttx"   : TransactionIdShort(TransactionId::Hash(tx.hash)).html(),
+            "from"      : tx.from.html(),
+            "to"        : tx.to.html(),
+            "shortdata" : shortdata,
+        }));
     }
-    page(&html)
+
+    content::Html(gs.tmpl
+        .render("block.handlebars", &json!({
+            "parent_hash"      : block.parent_hash,
+            "uncles_hash"      : block.uncles_hash,
+            "author"           : block.author.html(),
+            "state_root"       : block.state_root,
+            "receipts_root"    : block.receipts_root,
+            "gas_used"         : block.gas_used.low_u64(),
+            "gas_limit"        : block.gas_limit.low_u64(),
+            "extra_data"       : block.extra_data,
+            "timestamp"        : block.timestamp,
+            "difficulty"       : block.difficulty,
+            "total_difficulty" : block.total_difficulty,
+            "seal_fields"      : block.seal_fields,
+            "uncles"           : block.uncles,
+            "txs"              : txs
+        })).expect("error rendering"))    
 }
 
-pub fn tx_info(st : &State, txid: H256) -> content::Html<String> {
-    let tx = st.web3.eth().transaction(TransactionId::Hash(txid)).wait().unwrap().unwrap();
-    let mut html = String::from("");
+pub fn tx_info(gs : &GlobalState, txid: H256) -> content::Html<String> {
+    let ls = gs.create_local();
+    let tx = ls.web3.eth().transaction(TransactionId::Hash(txid)).wait().unwrap().unwrap();
+    let receipt = ls.web3.eth().transaction_receipt(txid).wait().unwrap().unwrap();
 
-    html.push_str(&format!("from              : {}<br>",tx.from.html()));
-    html.push_str(&format!("to                : {}<br>",tx.to.html()));
-    html.push_str(&format!("value             : {}<br>",Ether(tx.value).html()));
-    html.push_str(&format!("block             : {:?}<br>",tx.block_number.unwrap()));
-    html.push_str(&format!("gas               : {:?}<br>",tx.gas));
-    html.push_str(&format!("gasprice          : {:?}<br>",tx.gas_price));
-
-    let receipt = st.web3.eth().transaction_receipt(txid).wait().unwrap().unwrap();
-
-    html.push_str(&format!("cumulativeGasUsed : {:?}<br>",receipt.cumulative_gas_used));
-    html.push_str(&format!("gasUsed           : {:?}<br>",receipt.gas_used));
-    html.push_str(&format!("contractAddress   : {}<br>",receipt.contract_address.map(|x| x.html()).unwrap_or("".to_string())));
-    html.push_str(&format!("status            : {:?}<br><br>",receipt.status.unwrap()));
-    html.push_str(&format!("input<br>{:}",BytesWithPadding(tx.input,4).html()));
-    html.push_str(&format!("logs<br>"));
-
+    let mut logs = Vec::new();
     for (i,log) in receipt.logs.into_iter().enumerate() {
-        html.push_str(&format!("  - {}</a><br>",log.address.html()));
+        let mut topics = Vec::new();
         for (t,topic) in log.topics.into_iter().enumerate() {
-            html.push_str(&format!("    [{:}] {:?}<br>",t,topic));
+            topics.push(json!({"n":t, "hash": topic}));
         }
-        html.push_str(&format!("    data:<br>{}",BytesWithPadding(log.data,9).html()));
+        logs.push(json!({
+            "address" : log.address.html(),
+            "data"    : log.data.html().text.split(',').into_iter().collect::<Vec<&str>>(),
+            "topics"  : topics,
+        }));
     }
-    page(&html)
+
+    content::Html(gs.tmpl
+        .render("tx.handlebars", &json!({
+            "from"                : tx.from.html(),
+            "to"                  : tx.to.html(),
+            "value"               : Ether(tx.value).html().text,
+            "block"               : BlockId::Number(BlockNumber::Number(tx.block_number.unwrap().low_u64())).html(),
+            "gas"                 : tx.gas.low_u64(),
+            "gas_price"           : GWei(tx.gas_price).html().text,
+            "cumulative_gas_used" : receipt.cumulative_gas_used.low_u64(),
+            "gas_used"            : receipt.gas_used.low_u64(),
+            "contract_address"    : receipt.contract_address.map(|x| x.html()).unwrap_or(TextWithLink::blank()),
+            "status"              : receipt.status.unwrap(),
+            "input"               : tx.input.html().text.split(',').into_iter().collect::<Vec<&str>>(),
+            "logs"                : logs,
+        })).expect("error rendering"))    
 }
 
-pub fn addr_info(st : &State, addr: Address) -> content::Html<String> {
-    let mut html = String::from(""); 
-
-    let balance = st.web3.eth().balance(addr,None).wait().unwrap();
-    html.push_str(&format!("balance           : {}<br>",Ether(balance).html()));
-    let code = st.web3.eth().code(addr,None).wait().unwrap();
-    html.push_str(&format!("code              :<br>{}",BytesWithPadding(code,4).html()));
-    page(&html)
+pub fn addr_info(gs : &GlobalState, addr: Address) -> content::Html<String> {
+    let ls = gs.create_local();
+    let balance = ls.web3.eth().balance(addr,None).wait().unwrap();
+    let code = ls.web3.eth().code(addr,None).wait().unwrap();
+    content::Html(gs.tmpl
+        .render("address.handlebars", &json!({
+            "balance" : Ether(balance).html().text,
+            "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
+        })).expect("error rendering"))    
 }
 
-pub fn home(st : &State) -> content::Html<String> {
-    let mut last_blockno = st.web3.eth().block_number().wait().unwrap();
-    let mut html = String::from(""); 
+pub fn home(gs : &GlobalState) -> content::Html<String> {
+    let ls = gs.create_local();
+    let mut last_blockno = ls.web3.eth().block_number().wait().unwrap();
+    let mut blocks = Vec::new();
     for _ in 0..20 {
         let blockno = BlockId::Number(BlockNumber::Number(last_blockno.low_u64()));
-        let block = st.web3.eth().block(blockno).wait().unwrap().unwrap();
-        html.push_str(&format!("Block {} TxCount {:?}<br>",
-            BlockNumber::Number(last_blockno.low_u64()).html(),
-            block.transactions.len()).to_string()
-        );
+        let block = ls.web3.eth().block(blockno.clone()).wait().unwrap().unwrap();
+        blocks.push(json!({
+            "block"    : blockno.html(),
+            "tx_count" : block.transactions.len()
+        }));
         last_blockno = last_blockno - 1;
     }
-    page(&html)
+
+    content::Html(gs.tmpl
+        .render("home.handlebars", &json!({
+            "blocks": blocks
+        })).expect("error rendering"))
 }

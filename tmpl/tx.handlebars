@@ -1,0 +1,32 @@
+<html>
+<style>body {font-family: Courier;}</style>
+<body>
+Block explorer<br>    
+=======================<br>
+<b>from</b>              : <a href={{from.link}}>{{from.text}}</a><br>
+<b>to</b>                : <a href={{to.link}}>{{to.text}}</a><br>
+<b>value</b>             : {{value}}<br>
+<b>block</b>             : <a href={{block.link}}>{{block.text}}</a><br>
+<b>gas</b>               : {{gas}}<br>
+<b>gas price</b>         : {{gas_price}}<br>
+<b>cumulativeGasUsed</b> : {{cumulative_gas_used}}<br>
+<b>gasUsed</b>           : {{gas_used}}<br>
+<b>contractAddress</b>   : <a href={{contract_address.link}}>{{contract_address.text}}</a><br>
+<b>status</b>            : {{status}}<br><br>
+<b>input</b><br>           
+{{#each input}}
+    &nbsp;&nbsp;{{this}}<br>
+{{/each}}
+<br><b>logs</b><br>
+{{#each logs}}
+&nbsp;&nbsp;- <a href={{address.link}}>{{address.text}}</a><br>
+    {{#each topics}}
+    &nbsp;&nbsp;&nbsp;&nbsp;[{{n}}] {{hash}}<br>
+    {{/each}}
+    &nbsp;&nbsp;&nbsp;&nbsp;data<br>
+    {{#each data}}
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{this}}<br>
+    {{/each}}
+{{/each}}
+</body>
+</html>
