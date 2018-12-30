@@ -204,7 +204,7 @@ pub fn tx_info(gs : &GlobalState, txid: H256) -> content::Html<String> {
             "logs"                : logs,
         })).expect("error rendering"))    
 }
-
+ 
 pub fn addr_info(gs : &GlobalState, addr: Address) -> content::Html<String> {
     let ls = gs.create_local();
     let balance = ls.web3.eth().balance(addr,None).wait().unwrap();

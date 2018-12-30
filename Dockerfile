@@ -14,4 +14,4 @@ COPY --from=build /home/rust/target/release/rust-mbe .
 
 EXPOSE 8000
 
-ENTRYPOINT ["./rust-mbe","url"]
+ENTRYPOINT ["./rust-mbe"]
