@@ -1,11 +1,5 @@
-use rustc_hex::{FromHex};
-
-use web3::types::Address;
-use web3::types::H256;
-use web3::types::BlockId;
-use web3::types::BlockNumber;
-
-use serde::ser::{Serialize, Serializer};
+use rustc_hex::{FromHex,FromHexError};
+use web3::types::{H256,Address,U256};
 
 #[derive(Serialize)]
 pub enum Id {
@@ -14,38 +8,31 @@ pub enum Id {
     Block(u64)
 }
 
-pub enum LinkType {
-    IsTxFrom,
-    IsTxTo,
+pub fn hex_to_addr(s : &str) -> Result<Address,FromHexError> {
+    s.to_owned()
+        .chars()
+        .skip(2)
+        .collect::<String>()
+        .from_hex::<Vec<u8>>()
+        .map(|v| Address::from_slice(&v))
 }
 
-impl LinkType {
-    pub fn id(&self) -> u8 {
-        match self {
-            LinkType::IsTxFrom => 0,
-            LinkType::IsTxTo => 1,
-        }
-    }
+pub fn hex_to_h256(s : &str) -> Result<H256,FromHexError> {
+    s.to_owned()
+        .chars()
+        .skip(2)
+        .collect::<String>()
+        .from_hex::<Vec<u8>>()
+        .map(|v| H256::from_slice(&v))
 }
 
 impl Id {
     pub fn from(id : String) -> Option<Self> {
         if id.len() == 42 /* address */ {
-            let hex : String = id.chars().skip(2).collect();
-            let addr : Address = hex.as_str()
-                .from_hex::<Vec<u8>>()
-                .map(|v| Address::from_slice(&v))
-                .expect("unable to parse address");
-            Some(Id::Addr(addr))
+            hex_to_addr(id.as_str()).map(|addr| Id::Addr(addr)).ok()
         } else if id.len() == 66 /* tx */ {
-            let hex : String = id.chars().skip(2).collect();
-            let txid : H256 = hex.as_str()
-                .from_hex::<Vec<u8>>()
-                .map(|v| H256::from_slice(&v))
-                .expect("unable to parse tx");
-            Some(Id::Tx(txid))
+            hex_to_h256(id.as_str()).map(|h| Id::Tx(h)).ok()
         } else if let Ok(blockno_u64) = id.parse::<u64>() {
-//            let blockno = BlockNumber::Number(blockno_u64);
             Some(Id::Block(blockno_u64))
         } else {
             None

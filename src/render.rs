@@ -1,10 +1,4 @@
-use web3::types::Address;
-use web3::types::H256;
-use web3::types::U256;
-use web3::types::BlockId;
-use web3::types::TransactionId;
-use web3::types::BlockNumber;
-use web3::types::Bytes;
+use web3::types::{Address,H256,U256,BlockId,TransactionId,BlockNumber,Bytes};
 use web3::futures::Future;
 
 use rustc_hex::{ToHex};
@@ -28,6 +22,7 @@ pub struct TextWithLink {
     pub text : String,
     pub link : Option<String>,
 }
+
 impl TextWithLink {
     fn new_link(text : String, link: String) -> Self {
         TextWithLink{text:text, link:Some(link)}
@@ -91,7 +86,7 @@ impl HtmlRender for TransactionIdShort {
             match &self.0 {
                 TransactionId::Hash(h) => 
                     TextWithLink::new_link(
-                        format!("0x{:x}",h).chars().take(7).collect::<String>(),
+                        format!("{:x}",h).chars().take(7).collect::<String>(),
                         format!("/0x{:x}",h),
                     ),
                 _ => unreachable!()
@@ -176,7 +171,7 @@ pub fn tx_info(gs : &GlobalState, txid: H256) -> content::Html<String> {
     let receipt = ls.web3.eth().transaction_receipt(txid).wait().unwrap().unwrap();
 
     let mut logs = Vec::new();
-    for (i,log) in receipt.logs.into_iter().enumerate() {
+    for (_,log) in receipt.logs.into_iter().enumerate() {
         let mut topics = Vec::new();
         for (t,topic) in log.topics.into_iter().enumerate() {
             topics.push(json!({"n":t, "hash": topic}));
@@ -209,14 +204,28 @@ pub fn addr_info(gs : &GlobalState, addr: Address) -> content::Html<String> {
     let ls = gs.create_local();
     let balance = ls.web3.eth().balance(addr,None).wait().unwrap();
     let code = ls.web3.eth().code(addr,None).wait().unwrap();
+
+    let mut txs = Vec::new();
+    for txhash in gs.db.iter_addr_txs(&addr) {
+        let shortdata = "-"; // tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
+        txs.push(json!({
+            "tx"        : TransactionId::Hash(txhash).html(),
+            "from"      : "-", // tx.from.html(),
+            "to"        : "-", // tx.to.html(),
+            "shortdata" : shortdata,
+        }));
+    }
+
     content::Html(gs.tmpl
         .render("address.handlebars", &json!({
             "balance" : Ether(balance).html().text,
             "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
+            "txs"     : txs
         })).expect("error rendering"))    
 }
 
 pub fn home(gs : &GlobalState) -> content::Html<String> {
+    println!("Entered into home");
     let ls = gs.create_local();
     let mut last_blockno = ls.web3.eth().block_number().wait().unwrap();
     let mut blocks = Vec::new();
