@@ -2,17 +2,47 @@
 #[folder = "tmpl"]
 struct Asset;  
 
-use handlebars::Handlebars;
-use std::sync::atomic::{AtomicBool};
 use db::AppDB;
 
+use std::sync::atomic::{AtomicBool};
+use std::fs::File;
+use std::io::prelude::*;
+
+use handlebars::Handlebars;
+
+#[derive(Deserialize,Debug)]
 pub struct Config {
-    pub web3_url : String,
+    pub db_path          : String,
+    pub web3_url         : String,
+    pub scan             : bool,
+    pub scan_start_block : Option<u64>,
+}
+
+#[derive(Debug)]
+pub enum Error {
+    Io(std::io::Error),
+    Toml(toml::de::Error)
+}
+impl From<std::io::Error> for Error {
+    fn from(err : std::io::Error) -> Self {
+        Error::Io(err)
+    }
+}
+impl From<toml::de::Error> for Error {
+    fn from(err : toml::de::Error) -> Self {
+        Error::Toml(err)
+    }
 }
 
 impl Config {
-    pub fn new(web3_url : &str) -> Self {
-        Config { web3_url : web3_url.to_string() }
+    pub fn read(path : &str) -> Result<Self,Error> {
+        let mut contents = String::new();
+        File::open(path)?
+            .read_to_string(&mut contents)?;
+        Ok(toml::from_str(&contents)?)
+    }
+    pub fn read_default() -> Result<Self,Error> {
+        Config::read("rchain.toml")
     }
 }
 
@@ -51,9 +81,10 @@ impl GlobalState {
         let stop_signal = AtomicBool::new(false);
 
         // load database & init if not
-        let db = AppDB::open_default("./db").expect("cannot open database");
+        let db = AppDB::open_default(cfg.db_path.as_str()).expect("cannot open database");
         if None == db.get_last_block().expect("error reading last block") {
-            db.set_last_block(3000000).expect("error setting last block");
+            db.set_last_block(cfg.scan_start_block.unwrap_or(1))
+                .expect("error setting last block");
         }
 
         GlobalState{ tmpl : reg, cfg: cfg, db: db, stop_signal : stop_signal }

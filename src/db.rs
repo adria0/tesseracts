@@ -1,4 +1,4 @@
-use web3::types::{Address,H256,U256,U128,BlockId,Transaction,TransactionId,BlockNumber,Bytes};
+use web3::types::{Address,Block,H256,U256,U128,BlockId,Transaction,TransactionId,BlockNumber,Bytes};
 use rocksdb::{DB,Direction,DBIterator,IteratorMode};
 use model::*;
 use std::iter;
@@ -12,6 +12,7 @@ enum RecordType {
     TxLink = 1,
     NextBlock = 2,
     Tx = 3,
+    Block = 4,
 }
 
 #[derive(Copy,Clone,PartialEq)]
@@ -21,6 +22,7 @@ enum TxLinkType {
     Out = 2,
     InOut = 3
 }
+
 
 pub struct AppDB {
     db  : DB,
@@ -52,13 +54,32 @@ impl<'a> Iterator for AddrTxs {
     }
 }
 
+#[derive(Debug)]
+pub enum Error {
+    Rocks(rocksdb::Error),
+    SerdeCbor(serde_cbor::error::Error)
+}
+impl PartialEq for Error {
+    fn eq(&self, other: &Error) -> bool {
+        format!("{:?}",self) == format!("{:?}",other)
+    }
+}
+
+impl From<rocksdb::Error> for Error {
+    fn from(err: rocksdb::Error) -> Self {
+        Error::Rocks(err)
+    }
+}
+impl From<serde_cbor::error::Error> for Error {
+    fn from(err: serde_cbor::error::Error) -> Self {
+        Error::SerdeCbor(err)
+    }
+}
+
 impl AppDB {
-    
-    pub fn open_default(path : &str) -> Result<AppDB, rocksdb::Error> {
-        match DB::open_default(path) {
-            Err(err) => Err(err),
-            Ok(db) => Ok(AppDB { db : db })
-        }        
+
+    pub fn open_default(path : &str) -> Result<AppDB, Error> {
+        Ok(DB::open_default(path).map(|x| AppDB { db : x })?)
     }
     
     pub fn push_tx(&self, tx : &Transaction) -> Result<(),rocksdb::Error> {
@@ -92,7 +113,6 @@ impl AppDB {
         from_k.extend_from_slice(&txindex);
         from_k.extend_from_slice(&tx.hash);
         self.db.put(&from_k.to_owned(),&[TxLinkType::In as u8])
-
     }
 
     pub fn get_tx(&self, txhash : &H256) -> Result<Option<Transaction>,rocksdb::Error> {
@@ -100,6 +120,22 @@ impl AppDB {
         tx_k.extend_from_slice(&txhash);
         self.db.get(&tx_k).map(|bytes| {
             bytes.map(|v| from_slice::<Transaction>(&*v).unwrap())
+        })
+    }
+
+    pub fn push_block(&self, block: &Block<Transaction>) -> Result<(),Error> {
+        let mut b_k = vec![RecordType::Block as u8];
+        let block_no = (block.number.unwrap().low_u64()).to_le_bytes();
+        b_k.extend_from_slice(&block_no);
+
+        Ok(self.db.put(b_k.as_slice(),to_vec(block)?.as_slice())?)
+    }
+
+    pub fn get_block(&self, blockno : u64) -> Result<Option<Block<Transaction>>,rocksdb::Error> {
+        let mut b_k = vec![RecordType::Block as u8];
+        b_k.extend_from_slice(&blockno.to_le_bytes());
+        self.db.get(&b_k).map(|bytes| {
+            bytes.map(|v| from_slice::<Block<Transaction>>(&*v).unwrap())
         })
     }
 
@@ -114,18 +150,21 @@ impl AppDB {
         AddrTxs::new(iter,key)
     }
 
-    pub fn get_last_block(&self) -> Result<Option<u64>,rocksdb::Error> {
-        self.db.get(&[RecordType::NextBlock as u8]).map(|bytes| {
+    pub fn get_last_block(&self) -> Result<Option<u64>,Error> {
+        Ok(self.db.get(&[RecordType::NextBlock as u8]).map(|bytes| {
             bytes.map(|v| {
                 let mut le = [0;8];
                 le[..].copy_from_slice(&*v);
                 u64::from_le_bytes(le)
             })
-        })
+        })?)
     }
 
-    pub fn set_last_block(&self, n : u64) -> Result<(),rocksdb::Error> {
-        self.db.put(&[RecordType::NextBlock as u8],&n.to_le_bytes())
+    pub fn set_last_block(&self, n : u64) -> Result<(),Error> {
+        Ok(self.db.put(
+            &[RecordType::NextBlock as u8],
+            &n.to_le_bytes()
+        )?)
     }
 }
 

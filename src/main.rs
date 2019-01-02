@@ -8,6 +8,7 @@
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate rocksdb;
 
+extern crate toml;
 extern crate web3;
 extern crate rustc_hex;
 extern crate handlebars;
@@ -36,6 +37,7 @@ use web3::types::H256;
 use web3::types::BlockId;
 use web3::types::BlockNumber;
 
+
 // it turns out that is not possible to put an Arc inside a rocket::State,
 //  rocket internally crashes when unreferencing, so it can be solved by
 //  wrapping it inside a one-element tuple
@@ -43,33 +45,42 @@ pub struct SharedGlobalState(Arc<state::GlobalState>);
 
 #[get("/")]
 fn home(sgs: State<SharedGlobalState>) -> content::Html<String>  {
-    render::home(&sgs.0)
+    match render::home(&sgs.0) {
+        Ok(html) => html,
+        Err(err) => render::page(format!("Error: {:?}", err).as_str())
+    }
 }
 
 #[get("/<idstr>")]
 fn object(sgs: State<SharedGlobalState>, idstr: String) -> content::Html<String> {
     if let Some(id) = Id::from(idstr) {
-        match id {
+        let html = match id {
             Id::Addr(addr) => render::addr_info(&sgs.0,addr),
             Id::Tx(txid) => render::tx_info(&sgs.0,txid),
             Id::Block(block) => render::block_info(&sgs.0,
                 BlockId::Number(BlockNumber::Number(block)))
+        };
+        match html {
+            Ok(html) => html,
+            Err(err) => render::page(format!("Error: {:?}", err).as_str())
         }
     } else {
         render::page("Not found")
     }
 }
 
-
 fn main() {
-   
-   let args: Vec<String> = env::args().collect();
 
-   let cfg = state::Config::new(args[1].as_str());
+   let args: Vec<String> = env::args().collect();
+   let cfg = if args.len() > 1 {
+       state::Config::read(args[1].as_str()) 
+   } else {
+       state::Config::read_default() 
+   }.expect("cannot read config");
+
    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
 
-   let scan = false;
-   if scan {
+   if shared_ge.0.cfg.scan {
        let shared_ge_scan = shared_ge.0.clone();
         thread::spawn(move || {
             scanner::scan(&shared_ge_scan)
@@ -80,7 +91,7 @@ fn main() {
    ctrlc::set_handler(move || {
        println!("Got Ctrl-C handler signal. Stopping...");
        shared_ge_controlc.stop_signal.store(true, Ordering::SeqCst);
-       if !scan {
+       if !shared_ge_controlc.cfg.scan{
            std::process::exit(0);
        }
    }).expect("Error setting Ctrl-C handler");

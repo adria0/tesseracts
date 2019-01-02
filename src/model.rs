@@ -9,18 +9,14 @@ pub enum Id {
 }
 
 pub fn hex_to_addr(s : &str) -> Result<Address,FromHexError> {
-    s.to_owned()
-        .chars()
-        .skip(2)
+    s.to_owned().chars().skip(2)
         .collect::<String>()
         .from_hex::<Vec<u8>>()
         .map(|v| Address::from_slice(&v))
 }
 
 pub fn hex_to_h256(s : &str) -> Result<H256,FromHexError> {
-    s.to_owned()
-        .chars()
-        .skip(2)
+    s.to_owned().chars().skip(2)
         .collect::<String>()
         .from_hex::<Vec<u8>>()
         .map(|v| H256::from_slice(&v))
