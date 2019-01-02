@@ -4,6 +4,7 @@
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate serde;
 #[macro_use] extern crate serde_json;
+#[macro_use] extern crate serde_cbor;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate rocksdb;
 
@@ -67,7 +68,7 @@ fn main() {
    let cfg = state::Config::new(args[1].as_str());
    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
 
-   let scan = true;
+   let scan = false;
    if scan {
        let shared_ge_scan = shared_ge.0.clone();
         thread::spawn(move || {

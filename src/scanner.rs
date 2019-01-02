@@ -28,7 +28,6 @@ pub fn scan(gs: &GlobalState) {
             println!("Adding block {}/{} ({}‰)...",next_block,until_block,progress);
             for tx in &block.transactions {
                 gs.db.push_tx(&tx).expect("add tx");
-                println!("Register {:x}",&tx.hash);
             }
             next_block += 1;
             gs.db.set_last_block(next_block).expect("cannot set last block");

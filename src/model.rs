@@ -1,5 +1,5 @@
 use rustc_hex::{FromHex,FromHexError};
-use web3::types::{H256,Address,U256};
+use web3::types::{H256,Address};
 
 #[derive(Serialize)]
 pub enum Id {

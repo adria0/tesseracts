@@ -194,26 +194,36 @@ pub fn tx_info(gs : &GlobalState, txid: H256) -> content::Html<String> {
             "cumulative_gas_used" : receipt.cumulative_gas_used.low_u64(),
             "gas_used"            : receipt.gas_used.low_u64(),
             "contract_address"    : receipt.contract_address.map(|x| x.html()).unwrap_or(TextWithLink::blank()),
-            "status"              : receipt.status.unwrap(),
+            "status"              : receipt.status.map(|v| format!("{}",v)).unwrap_or("unspecified".to_string()),
             "input"               : tx.input.html().text.split(',').into_iter().collect::<Vec<&str>>(),
             "logs"                : logs,
         })).expect("error rendering"))    
 }
  
 pub fn addr_info(gs : &GlobalState, addr: Address) -> content::Html<String> {
+
     let ls = gs.create_local();
     let balance = ls.web3.eth().balance(addr,None).wait().unwrap();
     let code = ls.web3.eth().code(addr,None).wait().unwrap();
-
     let mut txs = Vec::new();
+
     for txhash in gs.db.iter_addr_txs(&addr) {
-        let shortdata = "-"; // tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
-        txs.push(json!({
-            "tx"        : TransactionId::Hash(txhash).html(),
-            "from"      : "-", // tx.from.html(),
-            "to"        : "-", // tx.to.html(),
-            "shortdata" : shortdata,
-        }));
+        if let Ok(Some(tx)) = gs.db.get_tx(&txhash) {
+            let shortdata = tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
+            txs.push(json!({
+                "tx"        : TransactionIdShort(TransactionId::Hash(txhash)).html(),
+                "from"      : tx.from.html(),
+                "to"        : tx.to.html(),
+                "shortdata" : shortdata,
+            }));
+        } else {
+            txs.push(json!({
+                "tx"        : TransactionIdShort(TransactionId::Hash(txhash)).html(),
+                "from"      : "not indexed",
+                "to"        : "not indexed",
+                "shortdata" : "not indexed",
+            }));
+        }
     }
 
     content::Html(gs.tmpl

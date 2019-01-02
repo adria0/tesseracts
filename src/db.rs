@@ -4,12 +4,14 @@ use model::*;
 use std::iter;
 use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
+use serde_cbor::{from_slice,to_vec};
 
 #[derive(Copy,Clone,PartialEq)]
 #[repr(u8)]
 enum RecordType {
     TxLink = 1,
     NextBlock = 2,
+    Tx = 3,
 }
 
 #[derive(Copy,Clone,PartialEq)]
@@ -61,39 +63,47 @@ impl AppDB {
     
     pub fn push_tx(&self, tx : &Transaction) -> Result<(),rocksdb::Error> {
 
+        // store tx
+        let mut tx_k = vec![RecordType::Tx as u8];
+        tx_k.extend_from_slice(&tx.hash);
+        self.db.put(tx_k.as_slice(),to_vec(tx).unwrap().as_slice())?;
+
+        // store addr->tx
         let blockno = tx.block_number.unwrap().low_u64().to_le_bytes();
         let txindex = tx.block_number.unwrap().low_u64().to_le_bytes();
 
         if let Some(to) = tx.to {
-            let mut tok : Vec<u8> = vec![];
-            tok.push(RecordType::TxLink as u8);
-            tok.extend_from_slice(&to);
-            tok.extend_from_slice(&blockno);
-            tok.extend_from_slice(&txindex);
-            tok.extend_from_slice(&tx.hash);
+            let mut to_k : Vec<u8> = vec![RecordType::TxLink as u8];
+            to_k.extend_from_slice(&to);
+            to_k.extend_from_slice(&blockno);
+            to_k.extend_from_slice(&txindex);
+            to_k.extend_from_slice(&tx.hash);
             
             let link_type = if tx.from==to { TxLinkType::InOut } else { TxLinkType::Out };
-            if let Err(err) = self.db.put(&tok.to_owned(),&[link_type as u8]) {
-                return Err(err);
-            }
+            self.db.put(to_k.as_slice(),&[link_type as u8])?;
             if link_type == TxLinkType::InOut  {
                 return Ok(());
             }
         }
 
-        let mut fromk : Vec<u8> = vec![];
-        fromk.push(RecordType::TxLink as u8);
-        fromk.extend_from_slice(&tx.from);
-        fromk.extend_from_slice(&blockno);
-        fromk.extend_from_slice(&txindex);
-        fromk.extend_from_slice(&tx.hash);
-        self.db.put(&fromk.to_owned(),&[TxLinkType::In as u8])
+        let mut from_k : Vec<u8> = vec![RecordType::TxLink as u8];
+        from_k.extend_from_slice(&tx.from);
+        from_k.extend_from_slice(&blockno);
+        from_k.extend_from_slice(&txindex);
+        from_k.extend_from_slice(&tx.hash);
+        self.db.put(&from_k.to_owned(),&[TxLinkType::In as u8])
 
     }
 
-    pub fn iter_addr_txs<'a>(&self, addr: &Address) -> AddrTxs {
-        let snapshot = self.db.snapshot();
+    pub fn get_tx(&self, txhash : &H256) -> Result<Option<Transaction>,rocksdb::Error> {
+        let mut tx_k = vec![RecordType::Tx as u8];
+        tx_k.extend_from_slice(&txhash);
+        self.db.get(&tx_k).map(|bytes| {
+            bytes.map(|v| from_slice::<Transaction>(&*v).unwrap())
+        })
+    }
 
+    pub fn iter_addr_txs<'a>(&self, addr: &Address) -> AddrTxs {
         let mut key : Vec<u8> = vec![];
         key.push(RecordType::TxLink as u8);
         key.extend_from_slice(addr);
@@ -105,15 +115,13 @@ impl AppDB {
     }
 
     pub fn get_last_block(&self) -> Result<Option<u64>,rocksdb::Error> {
-        match self.db.get(&[RecordType::NextBlock as u8]) {
-            Ok(Some(value)) => {
+        self.db.get(&[RecordType::NextBlock as u8]).map(|bytes| {
+            bytes.map(|v| {
                 let mut le = [0;8];
-                le[..].copy_from_slice(&*value);
-                Ok(Some(u64::from_le_bytes(le)))
-            }
-            Ok(None)        => Ok(None),
-            Err(e)          => Err (e),
-        }
+                le[..].copy_from_slice(&*v);
+                u64::from_le_bytes(le)
+            })
+        })
     }
 
     pub fn set_last_block(&self, n : u64) -> Result<(),rocksdb::Error> {

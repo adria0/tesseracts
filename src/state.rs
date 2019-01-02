@@ -3,8 +3,7 @@
 struct Asset;  
 
 use handlebars::Handlebars;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool};
 use db::AppDB;
 
 pub struct Config {
@@ -54,7 +53,7 @@ impl GlobalState {
         // load database & init if not
         let db = AppDB::open_default("./db").expect("cannot open database");
         if None == db.get_last_block().expect("error reading last block") {
-            db.set_last_block(1).expect("error setting last block");
+            db.set_last_block(3000000).expect("error setting last block");
         }
 
         GlobalState{ tmpl : reg, cfg: cfg, db: db, stop_signal : stop_signal }
