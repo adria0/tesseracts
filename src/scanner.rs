@@ -1,7 +1,7 @@
 use state::{GlobalState,Web3Client};
 use std::sync::atomic::Ordering;
 use std::{thread, time};
-use web3::types::{BlockId,BlockNumber,Block,Transaction,H256};
+use web3::types::{BlockId,BlockNumber,Transaction};
 use web3::futures::Future;
 use types::into_block;
 use db;

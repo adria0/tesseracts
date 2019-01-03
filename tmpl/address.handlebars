@@ -1,21 +1,42 @@
-<html>
-<style>body {font-family: 'Courier New', Courier, monospace;}</style>
-<body>
-Block explorer<br>    
-=======================<br>    
-<b>balance</b> : {{balance}}<br>
-<b>code</b><br>           
-{{#each code}}
-    &nbsp;&nbsp;{{this}}<br>
-{{/each}}
-<b>transactions</b><br>
-{{#each txs}}
-&nbsp;&nbsp;
-    <a href={{tx.link}}>{{tx.text}}</a>
-    <a href={{from.link}}>{{from.text}}</a>&rarr;
-    <a href={{to.link}}>{{to.text}}</a>
-    {{shortdata}}</a><br>
-{{/each}}
+{{ > header.handlebars }}
 
-</body>
-</html>
+<h6 class="title">Address {{ address }}</h6>
+<table class="u-full-width">
+    <tbody>
+        <tr>
+            <td>Balance</td>
+            <td>{{balance}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h5 class="title">Transactions</h5>
+<table>
+    <thead>
+        <th>Block</th>
+        <th>Tx</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Data</th>
+    </thead>
+    <tbody>
+        {{#each txs}}
+        <tr>
+            <td><a href={{blockno.link}}>{{blockno.text}}</td>
+            <td><a href={{tx.link}}>{{tx.text}}</td>
+            <td><a href={{from.link}}>{{from.text}}</a></td>
+            <td><a href={{to.link}}>{{to.text}}</td>
+            <td>{{shortdata}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+<h5 class="title">Code</h5>
+<pre><code>
+{{#each code}}{{this}}
+{{/each}}
+</code></pre>
+
+
+{{ > footer.handlebars }}

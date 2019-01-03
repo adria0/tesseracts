@@ -1,10 +1,20 @@
-<html>
-<style>body {font-family: 'Courier New', Courier, monospace;}</style>
-<body>
-Block explorer<br>    
-=======================<br>    
-{{#each blocks}}
-    Block <a href={{block.link}}>{{block.text}}</a> TxCount {{tx_count}}<br>
-{{/each}}
-</body>
-</html>
+{{ > header.handlebars }}
+
+<table>
+    <thead>
+        <th>Block</th>
+        <th>Transactions</th>
+    </thead>
+    <tbody>
+        {{#each blocks}}
+        <tr>
+            <td class=fixed><a href={{block.link}}>{{block.text}}</td>
+            <td class=fixed>{{tx_count}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+Last indexed block is #{{ last_indexed_block }}
+
+{{ > header.footer }}

@@ -23,21 +23,14 @@ mod db;
 mod scanner;
 
 use std::env;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{Ordering};
 use std::sync::Arc;
 use std::thread;
 
 use rocket::response::content;
 use rocket::State;
-use rustc_hex::{FromHex};
-
-use web3::types::Address;
-use web3::types::H256;
-use web3::types::BlockId;
-use web3::types::BlockNumber;
 
 use types::Id;
-
 
 // it turns out that is not possible to put an Arc inside a rocket::State,
 //  rocket internally crashes when unreferencing, so it can be solved by

@@ -48,8 +48,8 @@ impl<'a> Iterator for AddrTxs {
         if let Some(kv) = self.iter.next() {
             let key = &*(kv.0);
             if key.len() > self.key.len() && key[..self.key.len()]==self.key[..] {
-                // unserialize blockno, txindex 
-                return Some(H256::from_slice(&key[self.key.len()+16..]));
+                let tx = H256::from_slice(&key[self.key.len()+16..]);
+                return Some(tx);
             }
         }
         None
@@ -78,6 +78,12 @@ impl From<serde_cbor::error::Error> for Error {
     }
 }
 
+fn u64_from_slice(v: &[u8]) -> u64 {
+    let mut le = [0;8];
+    le[..].copy_from_slice(v);
+    u64::from_le_bytes(le)
+}
+
 impl AppDB {
 
     pub fn open_default(path : &str) -> Result<AppDB, Error> {
@@ -97,14 +103,14 @@ impl AppDB {
         self.db.put(r_k.as_slice(),to_vec(tr).unwrap().as_slice())?;
 
         // store receipt -> tx
-        let blockno = tx.block_number.unwrap().low_u64().to_le_bytes();
-        let txindex = tx.block_number.unwrap().low_u64().to_le_bytes();
+        let revblockno = (std::u64::MAX - tx.block_number.unwrap().low_u64()).to_le_bytes();
+        let revtxindex = (std::u64::MAX -tx.block_number.unwrap().low_u64()).to_le_bytes();
 
         if let Some(addr) = tr.contract_address {
             let mut contract_k : Vec<u8> = vec![RecordType::TxLink as u8];
             contract_k.extend_from_slice(&addr);
-            contract_k.extend_from_slice(&blockno);
-            contract_k.extend_from_slice(&txindex);
+            contract_k.extend_from_slice(&revblockno);
+            contract_k.extend_from_slice(&revtxindex);
             contract_k.extend_from_slice(&tx.hash);
             self.db.put(&contract_k.to_owned(),&[TxLinkType::CreateContract as u8])?;
         }
@@ -113,8 +119,8 @@ impl AppDB {
         if let Some(to) = tx.to {
             let mut to_k : Vec<u8> = vec![RecordType::TxLink as u8];
             to_k.extend_from_slice(&to);
-            to_k.extend_from_slice(&blockno);
-            to_k.extend_from_slice(&txindex);
+            to_k.extend_from_slice(&revblockno);
+            to_k.extend_from_slice(&revtxindex);
             to_k.extend_from_slice(&tx.hash);
             
             let link_type = if tx.from==to { TxLinkType::InOut } else { TxLinkType::Out };
@@ -126,8 +132,8 @@ impl AppDB {
 
         let mut from_k : Vec<u8> = vec![RecordType::TxLink as u8];
         from_k.extend_from_slice(&tx.from);
-        from_k.extend_from_slice(&blockno);
-        from_k.extend_from_slice(&txindex);
+        from_k.extend_from_slice(&revblockno);
+        from_k.extend_from_slice(&revtxindex);
         from_k.extend_from_slice(&tx.hash);
 
         Ok(self.db.put(&from_k.to_owned(),&[TxLinkType::In as u8])?)
@@ -178,11 +184,7 @@ impl AppDB {
 
     pub fn get_last_block(&self) -> Result<Option<u64>,Error> {
         Ok(self.db.get(&[RecordType::NextBlock as u8]).map(|bytes| {
-            bytes.map(|v| {
-                let mut le = [0;8];
-                le[..].copy_from_slice(&*v);
-                u64::from_le_bytes(le)
-            })
+            bytes.map(|v| u64_from_slice(&*v))
         })?)
     }
 
@@ -262,7 +264,7 @@ mod tests {
         assert_eq!(Some(h1), it_a3.next());
         assert_eq!(None, it_a3.next());
 
-    }
+    } 
 
     #[test]
     fn test_set_get_block() {

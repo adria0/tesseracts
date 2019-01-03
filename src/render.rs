@@ -7,7 +7,6 @@ use rocket::response::content;
 use reader::BlockchainReader;
 use serde_derive::Serialize;
 
-use state::*;
 use reader;
 
 lazy_static! {
@@ -168,6 +167,7 @@ pub fn block_info(reader:&BlockchainReader, hb:&Handlebars, blockno: u64) -> Res
             }));
         }
         Ok(content::Html(hb.render("block.handlebars", &json!({
+            "blockno"          : blockno,
             "parent_hash"      : block.parent_hash,
             "uncles_hash"      : block.uncles_hash,
             "author"           : block.author.html(),
@@ -226,6 +226,7 @@ pub fn tx_info(reader:&BlockchainReader, hb:&Handlebars, txid: H256) -> Result<c
         let input : Vec<&str> = inputhtml.text.split(',').collect();
 
         Ok(content::Html(hb.render("tx.handlebars", &json!({
+            "txhash"              : format!("0x{:x}",txid),
             "from"                : tx.from.html(),
             "to"                  : tx.to.html(),
             "value"               : Ether(tx.value).html().text,
@@ -250,10 +251,12 @@ pub fn addr_info(reader:&BlockchainReader, hb:&Handlebars, addr: &Address) -> Re
     let code = reader.current_code(addr)?;
     let mut txs = Vec::new();
 
-    for txhash in reader.db.iter_addr_txs(&addr) {
+    for txhash in reader.db.iter_addr_txs(&addr).take(20) {
         if let Some(txrc) = reader.tx(txhash)? {
             let shortdata = txrc.0.input.0.to_hex::<String>().chars().take(8).collect::<String>();
+            let blockid = BlockId::Number(BlockNumber::Number(txrc.0.block_number.unwrap().low_u64()));
             txs.push(json!({
+                "blockno"   : blockid.html(),
                 "tx"        : TransactionIdShort(TransactionId::Hash(txhash)).html(),
                 "from"      : txrc.0.from.html(),
                 "to"        : txrc.0.to.html(),
@@ -263,6 +266,7 @@ pub fn addr_info(reader:&BlockchainReader, hb:&Handlebars, addr: &Address) -> Re
     }
 
     Ok(content::Html(hb.render("address.handlebars", &json!({
+        "address" : format!("0x{:x}",addr),
         "balance" : Ether(balance).html().text,
         "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
         "txs"     : txs
@@ -288,6 +292,7 @@ pub fn home(reader:&BlockchainReader, hb:&Handlebars) -> Result<content::Html<St
     }
 
     Ok(content::Html(hb.render("home.handlebars", &json!({
+        "last_indexed_block" : reader.db.get_last_block().unwrap(),
         "blocks": blocks
     }))?))
 }

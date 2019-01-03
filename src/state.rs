@@ -1,7 +1,7 @@
 #[derive(RustEmbed)]
 #[folder = "tmpl"]
 struct Asset;  
-
+ 
 use db::AppDB;
 
 use std::sync::atomic::{AtomicBool};
