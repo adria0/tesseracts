@@ -2,12 +2,12 @@
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate rust_embed;
 #[macro_use] extern crate lazy_static;
-#[macro_use] extern crate serde;
 #[macro_use] extern crate serde_json;
-#[macro_use] extern crate serde_cbor;
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate rocksdb;
 
+extern crate serde;
+extern crate serde_cbor;
+extern crate rocksdb;
 extern crate toml;
 extern crate web3;
 extern crate rustc_hex;
@@ -15,14 +15,12 @@ extern crate handlebars;
 extern crate rand;
 extern crate ctrlc;
 
+mod reader;
 mod render;
 mod state;
-mod model;
+mod types;
 mod db;
 mod scanner;
-mod stream;
-
-use model::Id;
 
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -32,10 +30,13 @@ use std::thread;
 use rocket::response::content;
 use rocket::State;
 use rustc_hex::{FromHex};
+
 use web3::types::Address;
 use web3::types::H256;
 use web3::types::BlockId;
 use web3::types::BlockNumber;
+
+use types::Id;
 
 
 // it turns out that is not possible to put an Arc inside a rocket::State,
@@ -45,7 +46,9 @@ pub struct SharedGlobalState(Arc<state::GlobalState>);
 
 #[get("/")]
 fn home(sgs: State<SharedGlobalState>) -> content::Html<String>  {
-    match render::home(&sgs.0) {
+    let wc = sgs.0.new_web3client();
+    let reader = reader::BlockchainReader::new(&wc,&sgs.0.db);
+    match render::home(&reader,&sgs.0.hb) {
         Ok(html) => html,
         Err(err) => render::page(format!("Error: {:?}", err).as_str())
     }
@@ -53,12 +56,14 @@ fn home(sgs: State<SharedGlobalState>) -> content::Html<String>  {
 
 #[get("/<idstr>")]
 fn object(sgs: State<SharedGlobalState>, idstr: String) -> content::Html<String> {
+    let wc = sgs.0.new_web3client();
+    let reader = reader::BlockchainReader::new(&wc,&sgs.0.db);
+
     if let Some(id) = Id::from(idstr) {
         let html = match id {
-            Id::Addr(addr) => render::addr_info(&sgs.0,addr),
-            Id::Tx(txid) => render::tx_info(&sgs.0,txid),
-            Id::Block(block) => render::block_info(&sgs.0,
-                BlockId::Number(BlockNumber::Number(block)))
+            Id::Addr(addr) => render::addr_info(&reader,&sgs.0.hb,&addr),
+            Id::Tx(txid) => render::tx_info(&reader,&sgs.0.hb,txid),
+            Id::Block(block) => render::block_info(&reader,&sgs.0.hb,block)
         };
         match html {
             Ok(html) => html,

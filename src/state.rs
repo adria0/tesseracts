@@ -50,11 +50,10 @@ pub struct GlobalState {
     pub stop_signal : AtomicBool,
     pub db : AppDB,
     pub cfg : Config,
-    pub tmpl : Handlebars,
+    pub hb : Handlebars,
 }
 
-pub struct LocalState<'a> {
-    pub gs: &'a GlobalState,
+pub struct Web3Client {
     pub eloop : web3::transports::EventLoopHandle,
     pub web3 : web3::Web3<web3::transports::Http>,    
 }
@@ -87,14 +86,14 @@ impl GlobalState {
                 .expect("error setting last block");
         }
 
-        GlobalState{ tmpl : reg, cfg: cfg, db: db, stop_signal : stop_signal }
+        GlobalState{ hb : reg, cfg: cfg, db: db, stop_signal : stop_signal }
 
     }
-    pub fn create_local(&self) -> LocalState {
+    pub fn new_web3client(&self) -> Web3Client {
         let (eloop, transport) =
             web3::transports::Http::new(self.cfg.web3_url.as_str())
             .expect("opening http connection");
 
-        LocalState { gs: self, eloop  : eloop, web3 : web3::Web3::new(transport) }
+        Web3Client { eloop  : eloop, web3 : web3::Web3::new(transport) }
     }
 }

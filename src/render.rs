@@ -1,13 +1,14 @@
 use web3::types::{Address,H256,U256,BlockId,TransactionId,BlockNumber,Bytes};
 use web3::futures::Future;
+use handlebars::Handlebars;
 
 use rustc_hex::{ToHex};
 use rocket::response::content;
-
+use reader::BlockchainReader;
 use serde_derive::Serialize;
-use rocksdb::{DB,Direction,DBIterator,IteratorMode};
 
 use state::*;
+use reader;
 
 lazy_static! {
     static ref GWEI   : U256 = U256::from_dec_str("1000000000").unwrap();
@@ -16,25 +17,20 @@ lazy_static! {
 
 #[derive(Debug)]
 pub enum Error {
+    Unexpected,
     NotFound,
-    Web3(web3::Error),
     Render(handlebars::RenderError),
-    DbError(rocksdb::Error),
+    Reader(reader::Error),
 }
 
-impl From<web3::Error> for Error {
-    fn from(err: web3::Error) -> Self {
-        Error::Web3(err)
-    }
-}
 impl From<handlebars::RenderError> for Error {
     fn from(err: handlebars::RenderError) -> Self {
         Error::Render(err)
     }
 }
-impl From<rocksdb::Error> for Error {
-    fn from(err: rocksdb::Error) -> Self {
-        Error::DbError(err)
+impl From<reader::Error> for Error {
+    fn from(err: reader::Error) -> Self {
+        Error::Reader(err)
     }
 }
 
@@ -149,13 +145,6 @@ impl HtmlRender for Ether {
     }
 }
 
-pub fn open_default(gs : &GlobalState, path : &str) -> Result<u8, Error> {
-    DB::open_default(path).map(|x| 1u8 )?;
-    let ls = gs.create_local();
-    let block = ls.web3.eth().block_number().wait()?;
-    Ok(1)
-}
-
 pub fn page(innerhtml : &str) -> content::Html<String> {
     let mut html = String::from(""); 
     html.push_str("<html><style>body {font-family: Courier;}</style>");
@@ -164,11 +153,10 @@ pub fn page(innerhtml : &str) -> content::Html<String> {
     content::Html(html)
 }
 
-pub fn block_info(gs : &GlobalState, id: BlockId) -> Result<content::Html<String>,Error> {
-    let ls = gs.create_local();
-    let block = ls.web3.eth().block_with_txs(id).wait()?;
-    
-    if let Some(block) = block {
+pub fn block_info(reader:&BlockchainReader, hb:&Handlebars, blockno: u64) -> Result<content::Html<String>,Error> {
+
+    if let Some(block) = reader.block_with_txs(blockno)? {
+
         let mut txs = Vec::new();
         for tx in &block.transactions {
             let shortdata = tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
@@ -179,7 +167,7 @@ pub fn block_info(gs : &GlobalState, id: BlockId) -> Result<content::Html<String
                 "shortdata" : shortdata,
             }));
         }
-        Ok(content::Html(gs.tmpl.render("block.handlebars", &json!({
+        Ok(content::Html(hb.render("block.handlebars", &json!({
             "parent_hash"      : block.parent_hash,
             "uncles_hash"      : block.uncles_hash,
             "author"           : block.author.html(),
@@ -200,19 +188,15 @@ pub fn block_info(gs : &GlobalState, id: BlockId) -> Result<content::Html<String
     }
 }
 
-pub fn tx_info(gs : &GlobalState, txid: H256) -> Result<content::Html<String>,Error> {
-    let ls = gs.create_local();
-    let tx = ls.web3.eth().transaction(TransactionId::Hash(txid)).wait()?;
+pub fn tx_info(reader:&BlockchainReader, hb:&Handlebars, txid: H256) -> Result<content::Html<String>,Error> {
 
-    if let Some(tx) = tx {
+    if let Some((tx,receipt)) = reader.tx(txid)? {
 
         let mut logs = Vec::new();
         let mut cumulative_gas_used = String::from("");
         let mut gas_used = String::from("");
         let mut contract_address = TextWithLink::blank();
         let mut status = String::from("");
-
-        let receipt = ls.web3.eth().transaction_receipt(txid).wait()?;
 
         if let Some(receipt) = receipt {
             for (_,log) in receipt.logs.into_iter().enumerate() {
@@ -241,7 +225,7 @@ pub fn tx_info(gs : &GlobalState, txid: H256) -> Result<content::Html<String>,Er
         let inputhtml = tx.input.html();
         let input : Vec<&str> = inputhtml.text.split(',').collect();
 
-        Ok(content::Html(gs.tmpl.render("tx.handlebars", &json!({
+        Ok(content::Html(hb.render("tx.handlebars", &json!({
             "from"                : tx.from.html(),
             "to"                  : tx.to.html(),
             "value"               : Ether(tx.value).html().text,
@@ -261,61 +245,49 @@ pub fn tx_info(gs : &GlobalState, txid: H256) -> Result<content::Html<String>,Er
     }
 }
  
-pub fn addr_info(gs : &GlobalState, addr: Address) -> Result<content::Html<String>,Error> {
-
-    let ls = gs.create_local();
-    
-    let balance = ls.web3.eth().balance(addr,None).wait()?;
-    let code = ls.web3.eth().code(addr,None).wait()?;
+pub fn addr_info(reader:&BlockchainReader, hb:&Handlebars, addr: &Address) -> Result<content::Html<String>,Error> {
+    let balance = reader.current_balance(addr)?;
+    let code = reader.current_code(addr)?;
     let mut txs = Vec::new();
 
-    for txhash in gs.db.iter_addr_txs(&addr) {
-        if let Ok(Some(tx)) = gs.db.get_tx(&txhash) {
-            let shortdata = tx.input.0.to_hex::<String>().chars().take(8).collect::<String>();
+    for txhash in reader.db.iter_addr_txs(&addr) {
+        if let Some(txrc) = reader.tx(txhash)? {
+            let shortdata = txrc.0.input.0.to_hex::<String>().chars().take(8).collect::<String>();
             txs.push(json!({
                 "tx"        : TransactionIdShort(TransactionId::Hash(txhash)).html(),
-                "from"      : tx.from.html(),
-                "to"        : tx.to.html(),
+                "from"      : txrc.0.from.html(),
+                "to"        : txrc.0.to.html(),
                 "shortdata" : shortdata,
-            }));
-        } else {
-            txs.push(json!({
-                "tx"        : TransactionIdShort(TransactionId::Hash(txhash)).html(),
-                "from"      : "not indexed",
-                "to"        : "not indexed",
-                "shortdata" : "not indexed",
             }));
         }
     }
 
-    Ok(content::Html(gs.tmpl
-        .render("address.handlebars", &json!({
-            "balance" : Ether(balance).html().text,
-            "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
-            "txs"     : txs
-        }))?))    
+    Ok(content::Html(hb.render("address.handlebars", &json!({
+        "balance" : Ether(balance).html().text,
+        "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
+        "txs"     : txs
+    }))?))    
 }
 
-pub fn home(gs : &GlobalState) -> Result<content::Html<String>,Error> {
-    let ls = gs.create_local();
+pub fn home(reader:&BlockchainReader, hb:&Handlebars) -> Result<content::Html<String>,Error> {
 
-    let mut last_blockno = ls.web3.eth().block_number().wait()?.low_u64();
+    let mut last_blockno = reader.current_block_number()?;
     let mut blocks = Vec::new();
 
     for _ in 0..20 {
         let blockno = BlockId::Number(BlockNumber::Number(last_blockno));
-        let block = ls.web3.eth().block(blockno.clone()).wait()?;
-        if let Some(block) = block {
+        if let Some(block) = reader.block(last_blockno)? {
             blocks.push(json!({
                 "block"    : blockno.html(),
                 "tx_count" : block.transactions.len()
-            }));
+            }));            
+        } else {
+            return Err(Error::Unexpected);
         }
         last_blockno = last_blockno - 1;
     }
 
-    Ok(content::Html(gs.tmpl
-        .render("home.handlebars", &json!({
-            "blocks": blocks
-        }))?))
+    Ok(content::Html(hb.render("home.handlebars", &json!({
+        "blocks": blocks
+    }))?))
 }
