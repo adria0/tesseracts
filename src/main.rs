@@ -2,70 +2,65 @@
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate rust_embed;
 #[macro_use] extern crate lazy_static;
-#[macro_use] extern crate serde;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_cbor;
+extern crate rocksdb;
+extern crate toml;
 extern crate web3;
 extern crate rustc_hex;
 extern crate handlebars;
+extern crate rand;
+extern crate ctrlc;
 
+mod reader;
 mod render;
 mod state;
+mod types;
+mod db;
+mod scanner;
 
 use std::env;
+use std::sync::atomic::{Ordering};
+use std::sync::Arc;
+use std::thread;
+
 use rocket::response::content;
 use rocket::State;
 
-use rustc_hex::{FromHex};
+use types::Id;
 
-use web3::types::Address;
-use web3::types::H256;
-use web3::types::BlockId;
-use web3::types::BlockNumber;
+// it turns out that is not possible to put an Arc inside a rocket::State,
+//  rocket internally crashes when unreferencing, so it can be solved by
+//  wrapping it inside a one-element tuple
+pub struct SharedGlobalState(Arc<state::GlobalState>);
 
-enum Id {
-    Addr(Address),
-    Tx(H256),
-    Block(BlockId)
-}
-
-impl Id {
-    fn from(id : String) -> Option<Self> {
-        if id.len() == 42 /* address */ {
-            let hex : String = id.chars().skip(2).collect();
-            let addr : Address = hex.as_str()
-                .from_hex::<Vec<u8>>()
-                .map(|v| Address::from_slice(&v))
-                .expect("unable to parse address");
-            Some(Id::Addr(addr))
-        } else if id.len() == 66 /* tx */ {
-            let hex : String = id.chars().skip(2).collect();
-            let txid : H256 = hex.as_str()
-                .from_hex::<Vec<u8>>()
-                .map(|v| H256::from_slice(&v))
-                .expect("unable to parse tx");
-            Some(Id::Tx(txid))
-        } else if let Ok(blockno_u64) = id.parse::<u64>() {
-            let blockno = BlockNumber::Number(blockno_u64);
-            Some(Id::Block(BlockId::Number(blockno)))
-        } else {
-            None
-        }
+#[get("/")]
+fn home(sgs: State<SharedGlobalState>) -> content::Html<String>  {
+    let wc = sgs.0.new_web3client();
+    let reader = reader::BlockchainReader::new(&wc,&sgs.0.db);
+    match render::home(&reader,&sgs.0.hb) {
+        Ok(html) => html,
+        Err(err) => render::page(format!("Error: {:?}", err).as_str())
     }
 }
 
-#[get("/")]
-fn home(gs: State<state::GlobalState>) -> content::Html<String>  {
-    render::home(&gs)
-}
-
 #[get("/<idstr>")]
-fn object(gs: State<state::GlobalState>, idstr: String) -> content::Html<String> {
+fn object(sgs: State<SharedGlobalState>, idstr: String) -> content::Html<String> {
+    let wc = sgs.0.new_web3client();
+    let reader = reader::BlockchainReader::new(&wc,&sgs.0.db);
+
     if let Some(id) = Id::from(idstr) {
-        match id {
-            Id::Addr(addr) => render::addr_info(&gs,addr),
-            Id::Tx(txid) => render::tx_info(&gs,txid),
-            Id::Block(block) => render::block_info(&gs,block)
+        let html = match id {
+            Id::Addr(addr) => render::addr_info(&reader,&sgs.0.hb,&addr),
+            Id::Tx(txid) => render::tx_info(&reader,&sgs.0.hb,txid),
+            Id::Block(block) => render::block_info(&reader,&sgs.0.hb,block)
+        };
+        match html {
+            Ok(html) => html,
+            Err(err) => render::page(format!("Error: {:?}", err).as_str())
         }
     } else {
         render::page("Not found")
@@ -73,10 +68,33 @@ fn object(gs: State<state::GlobalState>, idstr: String) -> content::Html<String>
 }
 
 fn main() {
+
    let args: Vec<String> = env::args().collect();
-   let cfg = state::Config::new(args[1].as_str());
-   rocket::ignite()
-        .manage(state::GlobalState::new(cfg))
+   let cfg = if args.len() > 1 {
+       state::Config::read(args[1].as_str()) 
+   } else {
+       state::Config::read_default() 
+   }.expect("cannot read config");
+
+   let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
+
+   if shared_ge.0.cfg.scan {
+       let shared_ge_scan = shared_ge.0.clone();
+        thread::spawn(move || {
+            scanner::scan(&shared_ge_scan)
+        });
+   }
+
+   let shared_ge_controlc = shared_ge.0.clone();
+   ctrlc::set_handler(move || {
+       println!("Got Ctrl-C handler signal. Stopping...");
+       shared_ge_controlc.stop_signal.store(true, Ordering::SeqCst);
+       if !shared_ge_controlc.cfg.scan{
+           std::process::exit(0);
+       }
+   }).expect("Error setting Ctrl-C handler");
+
+   rocket::ignite().manage(shared_ge)
         .mount("/", routes![home,object])
         .launch();        
 }

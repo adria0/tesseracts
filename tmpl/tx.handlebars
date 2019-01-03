@@ -1,32 +1,66 @@
-<html>
-<style>body {font-family: Courier;}</style>
-<body>
-Block explorer<br>    
-=======================<br>
-<b>from</b>              : <a href={{from.link}}>{{from.text}}</a><br>
-<b>to</b>                : <a href={{to.link}}>{{to.text}}</a><br>
-<b>value</b>             : {{value}}<br>
-<b>block</b>             : <a href={{block.link}}>{{block.text}}</a><br>
-<b>gas</b>               : {{gas}}<br>
-<b>gas price</b>         : {{gas_price}}<br>
-<b>cumulativeGasUsed</b> : {{cumulative_gas_used}}<br>
-<b>gasUsed</b>           : {{gas_used}}<br>
-<b>contractAddress</b>   : <a href={{contract_address.link}}>{{contract_address.text}}</a><br>
-<b>status</b>            : {{status}}<br><br>
-<b>input</b><br>           
-{{#each input}}
-    &nbsp;&nbsp;{{this}}<br>
-{{/each}}
-<br><b>logs</b><br>
+{{ > header.handlebars }}
+
+<h6 class="title">Tx {{ txhash }}</h6>
+<table class="u-full-width">
+    <tbody>
+        <tr>
+            <td>Status</td>
+            <td>{{status}}</td>
+        </tr>
+        <tr>
+            <td>From</td>
+            <td><a href={{from.link}}>{{from.text}}</a></td>
+        </tr>
+        <tr>
+            <td>To</td>
+            <td><a href={{to.link}}>{{to.text}}</a></td>
+        </tr>
+        <tr>
+            <td>Value</td>
+            <td>{{value}}</td>
+        </tr>
+        <tr>
+            <td>Block</td>
+            <td><a href={{block.link}}>{{block.text}}</a></td>
+        </tr>
+        <tr>
+            <td>Gas</td>
+            <td>{{gas}}</td>
+        </tr>
+        <tr>
+            <td>Gas price</td>
+            <td>{{gas_price}}</td>
+        </tr>
+        <tr>
+            <td>Cumulative gas used</td>
+            <td>{{cumulative_gas_used}}</td>
+        </tr>
+        <tr>
+            <td>Gas used</td>
+            <td>{{gas_used}}</td>
+        </tr>
+        <tr>
+            <td>Contract created</td>
+            <td><a href={{contract_address.link}}>{{contract_address.text}}</a></td>
+        </tr>
+    </tbody>
+</table>
+
+<h5 class="title">Input</h5>
+<pre><code>{{#each input}}
+{{this}}{{/each}}
+</code></pre>
+
+<h5 class="title">Logs</h5>
 {{#each logs}}
-&nbsp;&nbsp;- <a href={{address.link}}>{{address.text}}</a><br>
-    {{#each topics}}
-    &nbsp;&nbsp;&nbsp;&nbsp;[{{n}}] {{hash}}<br>
-    {{/each}}
-    &nbsp;&nbsp;&nbsp;&nbsp;data<br>
-    {{#each data}}
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{this}}<br>
-    {{/each}}
+&nbsp;&nbsp;- <a href={{address.link}}>{{address.text}}</a>
+<pre><code>topics
+  {{#each topics}}[{{n}}] {{hash}}
+  {{/each}}
+data
+  {{#each data}}{{this}}
+  {{/each}}
 {{/each}}
-</body>
-</html>
+</code></pre>
+
+{{ > footer.handlebars }}

@@ -1,2 +1,4 @@
+db
 target
-run.sh
+run_infura.sh
+run_nn.sh
