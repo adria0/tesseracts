@@ -16,6 +16,7 @@ pub struct Config {
     pub web3_url         : String,
     pub scan             : bool,
     pub scan_start_block : Option<u64>,
+    pub bind             : String,
 }
 
 #[derive(Debug)]

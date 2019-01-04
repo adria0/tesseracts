@@ -2,3 +2,4 @@ db_path  = "db"
 web3_url = "http://localhost:8545"
 scan     = false
 scan_start_block = 1
+bind     = "0.0.0.0:8000"

@@ -63,7 +63,8 @@ fn main() {
        }
    }).expect("Error setting Ctrl-C handler");
 
-   rouille::start_server("localhost:8000", move |request| {
+   println!("Lisening to {}...",&shared_ge.0.cfg.bind.clone()); // TODO: remove clones
+   rouille::start_server(&shared_ge.0.cfg.bind.clone(), move |request| {
        router!(request,
            (GET) (/) => {
                 let wc = shared_ge.0.new_web3client();
