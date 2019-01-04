@@ -17,6 +17,7 @@
         <th>Tx</th>
         <th>From</th>
         <th>To</th>
+        <th>Value</th>
         <th>Data</th>
     </thead>
     <tbody>
@@ -25,7 +26,12 @@
             <td><a href={{blockno.link}}>{{blockno.text}}</td>
             <td><a href={{tx.link}}>{{tx.text}}</td>
             <td><a href={{from.link}}>{{from.text}}</a></td>
-            <td><a href={{to.link}}>{{to.text}}</td>
+            <td>{{ #if tonewcontract }}
+                New contract
+            {{ else }}
+                <a href={{to.link}}>{{to.text}}
+            {{ /if }}</td>
+            <td>{{value}}</td>
             <td>{{shortdata}}</td>
         </tr>
         {{/each}}

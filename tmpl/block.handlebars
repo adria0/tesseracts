@@ -63,15 +63,21 @@
         <th>Tx</th>
         <th>From</th>
         <th>To</th>
+        <th>Value</th>
         <th>Data</th>
     </thead>
     <tbody>
         {{#each txs}}
         <tr>
-            <td class=fixed><a href={{shorttx.link}}>{{shorttx.text}}</td>
-            <td class=fixed><a href={{from.link}}>{{from.text}}</a></td>
-            <td class=fixed><a href={{to.link}}>{{to.text}}</td>
-            <td class=fixed>{{shortdata}}</td>
+            <td><a href={{tx.link}}>{{tx.text}}</td>
+            <td><a href={{from.link}}>{{from.text}}</a></td>
+            <td>{{ #if tonewcontract }}
+                New contract
+            {{ else }}
+                <a href={{to.link}}>{{to.text}}
+            {{ /if }}</td>
+            <td>{{value.text}}</td>
+            <td>{{shortdata}}</td>
         </tr>
         {{/each}}
     </tbody>

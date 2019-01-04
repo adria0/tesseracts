@@ -1,17 +1,16 @@
-use state::{GlobalState,Web3Client};
+use db;
+use state::{GlobalState, Web3Client};
 use std::sync::atomic::Ordering;
 use std::{thread, time};
-use web3::types::{BlockId,BlockNumber,Transaction};
-use web3::futures::Future;
 use types::into_block;
-use db;
-
+use web3::futures::Future;
+use web3::types::{BlockId, BlockNumber, Transaction};
 
 #[derive(Debug)]
 pub enum Error {
     Uninitialized,
     Web3(web3::Error),
-    DB(db::Error)
+    DB(db::Error),
 }
 
 impl From<web3::Error> for Error {
@@ -25,26 +24,31 @@ impl From<db::Error> for Error {
     }
 }
 
-
-fn scan_blocks(gs: &GlobalState, wc:&Web3Client) -> Result<(),Error>{
+fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<(), Error> {
     if let Some(mut next_block) = gs.db.get_last_block()? {
-        let until_block = wc.web3.eth().block_number().wait()?.low_u64();      
-        
-        while next_block <= until_block && !gs.stop_signal.load(Ordering::SeqCst){
-            let block = wc.web3.eth()
-                .block_with_txs(BlockId::Number(BlockNumber::Number(next_block)))
-                .wait()?.unwrap();
+        let until_block = wc.web3.eth().block_number().wait()?.low_u64();
 
-            let progress = (next_block*1000)/until_block;
-            println!("Adding block {}/{} ({}‰)...",next_block,until_block,progress);
+        while next_block <= until_block && !gs.stop_signal.load(Ordering::SeqCst) {
+            let block = wc
+                .web3
+                .eth()
+                .block_with_txs(BlockId::Number(BlockNumber::Number(next_block)))
+                .wait()?
+                .unwrap();
+
+            let progress = (next_block * 1000) / until_block;
+            println!(
+                "Adding block {}/{} ({}‰)...",
+                next_block, until_block, progress
+            );
             for tx in &block.transactions {
                 let re = wc.web3.eth().transaction_receipt(tx.hash).wait()?.unwrap();
-                gs.db.push_tx(&tx,&re)?;
+                gs.db.push_tx(&tx, &re)?;
             }
 
-            gs.db.push_block(
-                &into_block(block,|tx:Transaction| tx.hash))?;
-            
+            gs.db
+                .push_block(&into_block(block, |tx: Transaction| tx.hash))?;
+
             next_block += 1;
             gs.db.set_last_block(next_block)?;
         }
@@ -58,9 +62,9 @@ pub fn scan(gs: &GlobalState) {
     let wc = gs.new_web3client();
     while !gs.stop_signal.load(Ordering::SeqCst) {
         thread::sleep(time::Duration::from_secs(5));
-        let ret = scan_blocks(&gs,&wc);
-        println!("Scan result: {:?}",ret);
+        let ret = scan_blocks(&gs, &wc);
+        println!("Scan result: {:?}", ret);
     }
     println!("Finished scanning transactions, self-killing.");
-    std::process::exit(0);    
+    std::process::exit(0);
 }
