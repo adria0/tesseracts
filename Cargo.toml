@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Adrià Massanet <adria@codecontext.io>"]
 
 [dependencies]
-rocket = "0.4.0"
 web3 = "0.5.1"
 rustc-hex = "2.0.1"
 handlebars = "1.1.0"
@@ -18,3 +17,4 @@ rocksdb = "0.10.1"
 rand = "0.6.1"
 ctrlc = "3.1.1"
 toml = "0.4.10"
+rouille = "3.0.0"

@@ -1,9 +1,8 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-#[macro_use] extern crate rocket;
 #[macro_use] extern crate rust_embed;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
+#[macro_use] extern crate rouille;
 
 extern crate serde;
 extern crate serde_cbor;
@@ -27,8 +26,8 @@ use std::sync::atomic::{Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use rocket::response::content;
-use rocket::State;
+use rouille::Request;
+use rouille::Response;
 
 use types::Id;
 
@@ -36,36 +35,6 @@ use types::Id;
 //  rocket internally crashes when unreferencing, so it can be solved by
 //  wrapping it inside a one-element tuple
 pub struct SharedGlobalState(Arc<state::GlobalState>);
-
-#[get("/")]
-fn home(sgs: State<SharedGlobalState>) -> content::Html<String>  {
-    let wc = sgs.0.new_web3client();
-    let reader = reader::BlockchainReader::new(&wc,&sgs.0.db);
-    match render::home(&reader,&sgs.0.hb) {
-        Ok(html) => html,
-        Err(err) => render::page(format!("Error: {:?}", err).as_str())
-    }
-}
-
-#[get("/<idstr>")]
-fn object(sgs: State<SharedGlobalState>, idstr: String) -> content::Html<String> {
-    let wc = sgs.0.new_web3client();
-    let reader = reader::BlockchainReader::new(&wc,&sgs.0.db);
-
-    if let Some(id) = Id::from(idstr) {
-        let html = match id {
-            Id::Addr(addr) => render::addr_info(&reader,&sgs.0.hb,&addr),
-            Id::Tx(txid) => render::tx_info(&reader,&sgs.0.hb,txid),
-            Id::Block(block) => render::block_info(&reader,&sgs.0.hb,block)
-        };
-        match html {
-            Ok(html) => html,
-            Err(err) => render::page(format!("Error: {:?}", err).as_str())
-        }
-    } else {
-        render::page("Not found")
-    }
-}
 
 fn main() {
 
@@ -94,8 +63,40 @@ fn main() {
        }
    }).expect("Error setting Ctrl-C handler");
 
-   rocket::ignite().manage(shared_ge)
-        .mount("/", routes![home,object])
-        .launch();        
+   rouille::start_server("localhost:8000", move |request| {
+       router!(request,
+           (GET) (/) => {
+                let wc = shared_ge.0.new_web3client();
+                let reader = reader::BlockchainReader::new(&wc,&shared_ge.0.db);
+                Response::html(
+                    match render::home(&reader,&shared_ge.0.hb) {
+                        Ok(html) => html,
+                        Err(err) => render::page(format!("Error: {:?}", err).as_str())
+                    }
+                )
+           },
+           (GET) (/{id: String}) => {
+                let wc = shared_ge.0.new_web3client();
+                let reader = reader::BlockchainReader::new(&wc,&shared_ge.0.db);
+                Response::html(
+                    if let Some(id) = Id::from(id) {
+                        let html = match id {
+                            Id::Addr(addr) => render::addr_info(&reader,&shared_ge.0.hb,&addr),
+                            Id::Tx(txid) => render::tx_info(&reader,&shared_ge.0.hb,txid),
+                            Id::Block(block) => render::block_info(&reader,&shared_ge.0.hb,block)
+                        };
+                        match html {
+                            Ok(html) => html,
+                            Err(err) => render::page(format!("Error: {:?}", err).as_str())
+                        }
+                    } else {
+                        render::page("Not found")
+                    }
+                )           
+           },
+           _ => rouille::Response::empty_404()
+       )
+   })
+
 }
  

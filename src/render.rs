@@ -3,7 +3,6 @@ use web3::futures::Future;
 use handlebars::Handlebars;
 
 use rustc_hex::{ToHex};
-use rocket::response::content;
 use reader::BlockchainReader;
 use serde_derive::Serialize;
 
@@ -144,15 +143,15 @@ impl HtmlRender for Ether {
     }
 }
 
-pub fn page(innerhtml : &str) -> content::Html<String> {
+pub fn page(innerhtml : &str) -> String {
     let mut html = String::from(""); 
     html.push_str("<html><style>body {font-family: Courier;}</style>");
     html.push_str(&innerhtml.replace(" ","&nbsp;").replace("_"," "));
     html.push_str("</html>");
-    content::Html(html)
+    html
 }
 
-pub fn block_info(reader:&BlockchainReader, hb:&Handlebars, blockno: u64) -> Result<content::Html<String>,Error> {
+pub fn block_info(reader:&BlockchainReader, hb:&Handlebars, blockno: u64) -> Result<String,Error> {
 
     if let Some(block) = reader.block_with_txs(blockno)? {
 
@@ -166,7 +165,7 @@ pub fn block_info(reader:&BlockchainReader, hb:&Handlebars, blockno: u64) -> Res
                 "shortdata" : shortdata,
             }));
         }
-        Ok(content::Html(hb.render("block.handlebars", &json!({
+        Ok(hb.render("block.handlebars", &json!({
             "blockno"          : blockno,
             "parent_hash"      : block.parent_hash,
             "uncles_hash"      : block.uncles_hash,
@@ -182,13 +181,13 @@ pub fn block_info(reader:&BlockchainReader, hb:&Handlebars, blockno: u64) -> Res
             "seal_fields"      : block.seal_fields,
             "uncles"           : block.uncles,
             "txs"              : txs
-            }))?))    
+            }))?)    
     } else {
         Err(Error::NotFound)
     }
 }
 
-pub fn tx_info(reader:&BlockchainReader, hb:&Handlebars, txid: H256) -> Result<content::Html<String>,Error> {
+pub fn tx_info(reader:&BlockchainReader, hb:&Handlebars, txid: H256) -> Result<String,Error> {
 
     if let Some((tx,receipt)) = reader.tx(txid)? {
 
@@ -225,7 +224,7 @@ pub fn tx_info(reader:&BlockchainReader, hb:&Handlebars, txid: H256) -> Result<c
         let inputhtml = tx.input.html();
         let input : Vec<&str> = inputhtml.text.split(',').collect();
 
-        Ok(content::Html(hb.render("tx.handlebars", &json!({
+        Ok(hb.render("tx.handlebars", &json!({
             "txhash"              : format!("0x{:x}",txid),
             "from"                : tx.from.html(),
             "to"                  : tx.to.html(),
@@ -239,14 +238,14 @@ pub fn tx_info(reader:&BlockchainReader, hb:&Handlebars, txid: H256) -> Result<c
             "status"              : status,
             "input"               : input,
             "logs"                : logs,
-            }))?))
+            }))?)
 
     } else {
         Err(Error::NotFound)
     }
 }
  
-pub fn addr_info(reader:&BlockchainReader, hb:&Handlebars, addr: &Address) -> Result<content::Html<String>,Error> {
+pub fn addr_info(reader:&BlockchainReader, hb:&Handlebars, addr: &Address) -> Result<String,Error> {
     let balance = reader.current_balance(addr)?;
     let code = reader.current_code(addr)?;
     let mut txs = Vec::new();
@@ -265,15 +264,15 @@ pub fn addr_info(reader:&BlockchainReader, hb:&Handlebars, addr: &Address) -> Re
         }
     }
 
-    Ok(content::Html(hb.render("address.handlebars", &json!({
+    Ok(hb.render("address.handlebars", &json!({
         "address" : format!("0x{:x}",addr),
         "balance" : Ether(balance).html().text,
         "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
         "txs"     : txs
-    }))?))    
+    }))?)    
 }
 
-pub fn home(reader:&BlockchainReader, hb:&Handlebars) -> Result<content::Html<String>,Error> {
+pub fn home(reader:&BlockchainReader, hb:&Handlebars) -> Result<String,Error> {
 
     let mut last_blockno = reader.current_block_number()?;
     let mut blocks = Vec::new();
@@ -291,8 +290,8 @@ pub fn home(reader:&BlockchainReader, hb:&Handlebars) -> Result<content::Html<St
         last_blockno = last_blockno - 1;
     }
 
-    Ok(content::Html(hb.render("home.handlebars", &json!({
+    Ok(hb.render("home.handlebars", &json!({
         "last_indexed_block" : reader.db.get_last_block().unwrap(),
         "blocks": blocks
-    }))?))
+    }))?)
 }

@@ -2,7 +2,7 @@ use web3::types::{Address,Block,H256,U256,U128,BlockId,Transaction,TransactionRe
 use rocksdb::{DB,Direction,DBIterator,IteratorMode};
 use types::*;
 use std::iter;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng,Rng};
 use rand::distributions::Alphanumeric;
 use serde_cbor::{from_slice,to_vec};
 
@@ -40,6 +40,30 @@ impl AddrTxs {
         AddrTxs{iter,key}
     }
 }
+
+fn u64_to_le(v : u64) -> [u8;8] {
+    [
+        ((v>>56) & 0xff) as u8,
+        ((v>>48) & 0xff) as u8,
+        ((v>>40) & 0xff) as u8,
+        ((v>>32) & 0xff) as u8,
+        ((v>>24) & 0xff) as u8,
+        ((v>>16) & 0xff) as u8,
+        ((v>>8 ) & 0xff) as u8,
+        ((v>>0 ) & 0xff) as u8
+    ]
+}
+fn le_to_u64(v: &[u8;8]) -> u64 {
+    (  v[7] as u64) +
+    ( (v[6] as u64) << 8  )+
+    ( (v[5] as u64) << 16 )+
+    ( (v[4] as u64) << 24 )+
+    ( (v[3] as u64) << 32 )+
+    ( (v[2] as u64) << 40 )+
+    ( (v[1] as u64) << 48 )+ 
+    ( (v[0] as u64) << 56 )
+}
+
 
 impl<'a> Iterator for AddrTxs {
     type Item = H256;
@@ -81,7 +105,7 @@ impl From<serde_cbor::error::Error> for Error {
 fn u64_from_slice(v: &[u8]) -> u64 {
     let mut le = [0;8];
     le[..].copy_from_slice(v);
-    u64::from_le_bytes(le)
+    le_to_u64(&le)
 }
 
 impl AppDB {
@@ -103,8 +127,8 @@ impl AppDB {
         self.db.put(r_k.as_slice(),to_vec(tr).unwrap().as_slice())?;
 
         // store receipt -> tx
-        let revblockno = (std::u64::MAX - tx.block_number.unwrap().low_u64()).to_le_bytes();
-        let revtxindex = (std::u64::MAX -tx.block_number.unwrap().low_u64()).to_le_bytes();
+        let revblockno = u64_to_le(std::u64::MAX - tx.block_number.unwrap().low_u64());
+        let revtxindex = u64_to_le(std::u64::MAX -tx.block_number.unwrap().low_u64());
 
         if let Some(addr) = tr.contract_address {
             let mut contract_k : Vec<u8> = vec![RecordType::TxLink as u8];
@@ -157,7 +181,7 @@ impl AppDB {
 
     pub fn push_block(&self, block: &Block<H256>) -> Result<(),Error> {
         let mut b_k = vec![RecordType::Block as u8];
-        let block_no = (block.number.unwrap().low_u64()).to_le_bytes();
+        let block_no = u64_to_le(block.number.unwrap().low_u64());
         b_k.extend_from_slice(&block_no);
 
         Ok(self.db.put(b_k.as_slice(),to_vec(block)?.as_slice())?)
@@ -165,7 +189,7 @@ impl AppDB {
 
     pub fn get_block(&self, blockno : u64) -> Result<Option<Block<H256>>,Error> {
         let mut b_k = vec![RecordType::Block as u8];
-        b_k.extend_from_slice(&blockno.to_le_bytes());
+        b_k.extend_from_slice(&u64_to_le(blockno));
         Ok(self.db.get(&b_k).map(|bytes| {
             bytes.map(|v| from_slice::<Block<H256>>(&*v).unwrap())
         })?)
@@ -191,7 +215,7 @@ impl AppDB {
     pub fn set_last_block(&self, n : u64) -> Result<(),Error> {
         Ok(self.db.put(
             &[RecordType::NextBlock as u8],
-            &n.to_le_bytes()
+            &u64_to_le(n)
         )?)
     }
 }
@@ -266,13 +290,14 @@ mod tests {
 
     } 
 
+
     #[test]
     fn test_set_get_block() {
         let appdb = init();
         assert_eq!(Ok(None), appdb.get_last_block());
         assert_eq!(Ok(()), appdb.set_last_block(1));
         assert_eq!(Ok(Some(1)), appdb.get_last_block());
-        assert_eq!(Ok(()), appdb.set_last_block(2));
-        assert_eq!(Ok(Some(2)), appdb.get_last_block());
+        assert_eq!(Ok(()), appdb.set_last_block(0xaabbccdd11223344));
+        assert_eq!(Ok(Some(0xaabbccdd11223344)), appdb.get_last_block());
     }
 }
