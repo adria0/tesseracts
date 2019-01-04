@@ -1,17 +1,25 @@
-FROM buildpack-deps:stretch AS build
+FROM alpine:edge AS builder
 
-RUN curl https://sh.rustup.rs -sSf | sh -vs -- -y 
-RUN $HOME/.cargo/bin/rustup install nightly 
-RUN $HOME/.cargo/bin/rustup default nightly
+RUN apk add build-base \
+    cmake \
+    linux-headers \
+    openssl-dev \
+    cargo \
+    clang \
+    clang-libs \
+    git
 
 WORKDIR /home/rust/
-COPY . .
-RUN $HOME/.cargo/bin/cargo build --release
+RUN git clone https://github.com/adriamb/rustalleda
+WORKDIR /home/rust/rustalleda
+RUN cargo build --release
 
-FROM scratch
+FROM alpine:edge
 WORKDIR /home/rust/
-COPY --from=build /home/rust/target/release/rust-mbe .
+COPY --from=builder /home/rust/rustalleda/target/release/rustalleda .
 
 EXPOSE 8000
 
-ENTRYPOINT ["./rust-mbe"]
+RUN apk add clang clang-libs ca-certificates
+
+ENTRYPOINT ["./rustalleda"]
