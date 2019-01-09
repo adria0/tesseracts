@@ -7,7 +7,7 @@ use std::fs::File;
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use std::io::prelude::*;
-use rustc_hex::FromHex;
+use rustc_hex::{FromHex,ToHex};
 
 use tiny_keccak;
 use ethabi;
@@ -115,7 +115,11 @@ pub fn codeequals(contract : &SolcContract, code: &[u8]) -> Result<bool,Error> {
     if code.len() != binruntime.len() || code.len() < 34 {
         Ok(false)
     } else {
-        let equals = &code[0..code.len()-34] != &binruntime[0..code.len()-34];
+        let equals = &code[0..code.len()-34] == &binruntime[0..code.len()-34];
+        if !equals { 
+            println!("blockchain {}",code.to_hex::<String>());
+            println!("compiled   {}",binruntime.to_hex::<String>());
+        }
         Ok(equals)
     }
 }
