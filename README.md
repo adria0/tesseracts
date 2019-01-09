@@ -12,8 +12,9 @@ comes from the famous catalan chef [Carme Ruscalleda](https://en.wikipedia.org/w
 - [X] Gracefull termination with control-C
 - [X] Configuration file
 - [X] Embeeded templates (does not need external files)
+- [X] Upload contracts and parse calls and logs
+- [ ] Add 
 - [ ] Parse clique block headers
-- [ ] Define ABI for contract and parse calls and logs
 - [ ] Block & Tx pagination
 - [ ] Parallel download recipts
 - [ ] Copy the database via DevP2P instead Web3
