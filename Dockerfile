@@ -10,13 +10,13 @@ RUN apk add build-base \
     git
 
 WORKDIR /home/rust/
-RUN git clone https://github.com/adriamb/rustalleda
+COPY . .
 WORKDIR /home/rust/rustalleda
 RUN cargo build --release
 
 FROM alpine:edge
 WORKDIR /home/rust/
-COPY --from=builder /home/rust/rustalleda/target/release/rustalleda .
+COPY --from=builder /home/rust/target/release/rustalleda .
 
 EXPOSE 8000
 
