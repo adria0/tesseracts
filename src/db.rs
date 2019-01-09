@@ -1,13 +1,6 @@
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use rocksdb::{DBIterator, Direction, IteratorMode, DB};
 use serde_cbor::{from_slice, to_vec};
-use std::iter;
-use types::*;
-use web3::types::{
-    Address, Block, BlockId, BlockNumber, Bytes, Transaction, TransactionId, TransactionReceipt,
-    H256, U128, U256,
-};
+use web3::types::{Address, Block, Transaction, TransactionReceipt, H256};
 
 #[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
@@ -17,6 +10,7 @@ enum RecordType {
     Tx = 3,
     Block = 4,
     Receipt = 5,
+    ContractAbi = 6,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -41,6 +35,16 @@ impl AddrTxs {
     fn new(iter: DBIterator, key: Vec<u8>) -> Self {
         AddrTxs { iter, key }
     }
+}
+
+#[derive(Debug,Serialize,Deserialize)]
+pub struct Contract {
+    pub source : String,
+    pub abi : String,
+    pub name : String,
+    pub compiler: String,
+    pub optimized: bool,
+    pub constructor : Vec<u8>, 
 }
 
 fn u64_to_le(v: u64) -> [u8; 8] {
@@ -205,8 +209,7 @@ impl AppDB {
     }
 
     pub fn iter_addr_txs<'a>(&self, addr: &Address) -> AddrTxs {
-        let mut key: Vec<u8> = vec![];
-        key.push(RecordType::TxLink as u8);
+        let mut key: Vec<u8> = vec![RecordType::TxLink as u8];
         key.extend_from_slice(addr);
 
         let iter = self
@@ -214,6 +217,23 @@ impl AppDB {
             .iterator(IteratorMode::From(&key, Direction::Forward));
 
         AddrTxs::new(iter, key)
+    }
+
+    pub fn set_contract(&self, addr: &Address, contract: &Contract) -> Result<(),Error> {
+        let mut key: Vec<u8> = vec![RecordType::ContractAbi as u8];
+        key.extend_from_slice(addr);
+        Ok(self.db.put(&key, &to_vec(contract)?)?)
+    }
+
+    pub fn get_contract(&self, addr: &Address) -> Result<Option<Contract>,Error> {
+        let mut key: Vec<u8> = vec![RecordType::ContractAbi as u8];
+        key.extend_from_slice(addr);
+
+        if let Some(bytes) = self.db.get(&key)? {
+            Ok(Some(from_slice::<Contract>(&bytes.to_vec())?))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn get_last_block(&self) -> Result<Option<u64>, Error> {
@@ -231,6 +251,11 @@ impl AppDB {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::distributions::Alphanumeric;
+    use rand::{thread_rng, Rng};
+    use std::iter;
+    use types::*;
+    use web3::types::{Bytes, Transaction, TransactionReceipt,U128, U256};
 
     fn init() -> AppDB {
         let mut rng = thread_rng();

@@ -28,21 +28,49 @@
             <td><a href={{from.link}}>{{from.text}}</a></td>
             <td>{{ #if tonewcontract }}
                 New contract
-            {{ else }}
+                {{ else }}
                 <a href={{to.link}}>{{to.text}}
-            {{ /if }}</td>
-            <td>{{value}}</td>
+                    {{ /if }}</td>
+            <td>{{value.text}}</td>
             <td>{{shortdata}}</td>
         </tr>
         {{/each}}
     </tbody>
 </table>
 
-<h5 class="title">Code</h5>
-<pre><code>
-{{#each code}}{{this}}
-{{/each}}
-</code></pre>
+{{ #if hascode }}
+{{ #if hascontract }}
 
+<h5 class="title">Contract source</h5>
+    Compiler version {{ contract_compiler }}, optimized {{ contract_optimized }}<br>
+    Contract name {{ contract_name }}<br>
+    <textarea rows="20" cols="100" disabled=true>
+{{ contract_source }}</textarea><br>
+
+<br>
+
+{{ else }}
+
+<h5 class="title">Upload contract source</h5>
+<form action="/{{ address }}/contract" method="post">
+    <textarea name="contract_source" rows="20" cols="100">
+{{ contratsource }}</textarea><br>
+    Compiler version <select name="contract_compiler">
+        {{#each solcversions}}<option>{{this}}</option>
+        {{/each}}
+    </select>
+    <input type="checkbox" name="contract_optimized"> Optimized</input><br>
+    Contract name <input type="text" name="contract_name"></input>
+    <button>Upload</button>
+</form><br>
+
+{{ /if }}
+
+
+<h5 class="title">Raw EVM Code</h5>
+<textarea rows="20" cols="64" disabled="true">
+{{#each rawcode}}{{this}}
+{{/each}}</textarea>
+{{ /if }}
 
 {{ > footer.handlebars }}

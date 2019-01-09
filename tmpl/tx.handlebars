@@ -47,19 +47,17 @@
 </table>
 
 <h5 class="title">Input</h5>
-<pre><code>{{#each input}}
-{{this}}{{/each}}
+<pre><code>
+{{#each input}}{{this}}
+{{/each}}
 </code></pre>
 
 <h5 class="title">Logs</h5>
 {{#each logs}}
 &nbsp;&nbsp;- <a href={{address.link}}>{{address.text}}</a>
-<pre><code>topics
-  {{#each topics}}[{{n}}] {{hash}}
-  {{/each}}
-data
-  {{#each data}}{{this}}
-  {{/each}}
+<pre><code>
+{{#each txt}}{{this}}
+{{/each}}
 {{/each}}
 </code></pre>
 

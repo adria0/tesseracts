@@ -1,12 +1,15 @@
 use handlebars::Handlebars;
-use web3::futures::Future;
 use web3::types::{Address, BlockId, BlockNumber, Bytes, Transaction, TransactionId, H256, U256};
-
 use reader::BlockchainReader;
 use rustc_hex::ToHex;
 use serde_derive::Serialize;
+use reqwest;
+use ethabi;
 
+use db;
 use reader;
+use state;
+use contract;
 
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
@@ -17,18 +20,48 @@ lazy_static! {
 pub enum Error {
     Unexpected,
     NotFound,
-    Render(handlebars::RenderError),
+    Handlebars(handlebars::RenderError),
+    Reqwest(reqwest::Error),
     Reader(reader::Error),
+    Io(std::io::Error),
+    Db(db::Error),
+    EthAbi(ethabi::Error),
+    Contract(contract::Error),
 }
 
 impl From<handlebars::RenderError> for Error {
     fn from(err: handlebars::RenderError) -> Self {
-        Error::Render(err)
+        Error::Handlebars(err)
     }
 }
 impl From<reader::Error> for Error {
     fn from(err: reader::Error) -> Self {
         Error::Reader(err)
+    }
+}
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Error::Reqwest(err)
+    }
+}
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::Io(err)
+    }
+}
+impl From<db::Error> for Error {
+    fn from(err: db::Error) -> Self {
+        Error::Db(err)
+    }
+}
+impl From<ethabi::Error> for Error {
+    fn from(err: ethabi::Error) -> Self {
+        Error::EthAbi(err)
+    }
+}
+impl From<contract::Error> for Error {
+    fn from(err: contract::Error) -> Self {
+        Error::Contract(err)
     }
 }
 
@@ -117,6 +150,7 @@ impl HtmlRender for TransactionIdShort {
     }
 }
 
+
 impl HtmlRender for BlockId {
     fn html(&self) -> TextWithLink {
         match &self {
@@ -184,13 +218,6 @@ pub fn block_info(
     if let Some(block) = reader.block_with_txs(blockno)? {
         let mut txs = Vec::new();
         for tx in &block.transactions {
-            let shortdata = tx
-                .input
-                .0
-                .to_hex::<String>()
-                .chars()
-                .take(8)
-                .collect::<String>();
             txs.push(tx_short_json(&tx));
         }
         Ok(hb.render(
@@ -218,27 +245,17 @@ pub fn block_info(
     }
 }
 
+pub fn tx_info(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H256) -> Result<String, Error> {
 
-pub fn tx_info(reader: &BlockchainReader, hb: &Handlebars, txid: H256) -> Result<String, Error> {
     if let Some((tx, receipt)) = reader.tx(txid)? {
+
         let mut logs = Vec::new();
         let mut cumulative_gas_used = String::from("");
         let mut gas_used = String::from("");
         let mut contract_address = TextWithLink::blank();
         let mut status = String::from("");
-
+        
         if let Some(receipt) = receipt {
-            for (_, log) in receipt.logs.into_iter().enumerate() {
-                let mut topics = Vec::new();
-                for (t, topic) in log.topics.into_iter().enumerate() {
-                    topics.push(json!({"n":t, "hash": topic}));
-                }
-                logs.push(json!({
-                    "address" : log.address.html(),
-                    "data"    : log.data.html().text.split(',').into_iter().collect::<Vec<&str>>(),
-                    "topics"  : topics,
-                }));
-            }
 
             cumulative_gas_used = format!("{}", receipt.cumulative_gas_used.low_u64());
             gas_used = format!("{}", receipt.gas_used.low_u64());
@@ -248,15 +265,56 @@ pub fn tx_info(reader: &BlockchainReader, hb: &Handlebars, txid: H256) -> Result
             status = receipt
                 .status
                 .map_or_else(|| String::from(""), |s| format!("{}", s));
+
+
+            for (_, log) in receipt.logs.into_iter().enumerate() {
+                
+                let mut txt = Vec::new();
+
+                if let Some(contract) = db.get_contract(&log.address)? {
+                    // TODO: remove clone
+                    let callinfo = contract::log_to_string(&contract.abi,log.clone())?;
+                    txt.extend_from_slice(&callinfo);
+                    txt.push(String::from(""));
+                }
+
+                txt.push(format!("data"));
+                for ll in log.data.html().text.split(',') {
+                    txt.push(format!("  {}",ll));
+                }
+                
+                txt.push(format!("topics"));
+                for (t, topic) in log.topics.into_iter().enumerate() {
+                    txt.push(format!("  [{}] {:?}",t,topic));
+                }
+
+                logs.push(json!({
+                    "address" : log.address.html(),
+                    "txt"     : txt,
+                }));
+
+            }
+
+        }
+
+        // log_to_string
+        let mut input: Vec<String> = Vec::new();
+        if let Some(to) = tx.to {
+            if let Some(contract) = db.get_contract(&to)? {
+                let callinfo = contract::call_to_string(&contract.abi,&tx.input.0)?;
+                input.extend_from_slice(&callinfo);
+                input.push(String::from(""));
+            }
+
+            let inputhtml = tx.input.html();
+            let inputvec : Vec<String> = inputhtml.text.split(',').map(|x| x.to_string()).collect(); 
+            input.extend_from_slice(&inputvec);
         }
 
         let block = tx.block_number.map_or_else(
             || TextWithLink::blank(),
             |b| BlockId::Number(BlockNumber::Number(b.low_u64())).html(),
         );
-
-        let inputhtml = tx.input.html();
-        let input: Vec<&str> = inputhtml.text.split(',').collect();
 
         Ok(hb.render(
             "tx.handlebars",
@@ -282,6 +340,7 @@ pub fn tx_info(reader: &BlockchainReader, hb: &Handlebars, txid: H256) -> Result
 }
 
 pub fn addr_info(
+    cfg : &state::Config,
     reader: &BlockchainReader,
     hb: &Handlebars,
     addr: &Address,
@@ -297,15 +356,54 @@ pub fn addr_info(
         }
     }
 
-    Ok(hb.render(
-        "address.handlebars",
-        &json!({
-            "address" : format!("0x{:x}",addr),
-            "balance" : Ether(balance).html().text,
-            "code"    : code.html().text.split(',').into_iter().collect::<Vec<&str>>(),
-            "txs"     : txs
-        }),
-    )?)
+    if &code.0.len() > &0 {
+
+        let rawcodehtml = code.html().text;
+        let rawcode = rawcodehtml.split(',').into_iter().collect::<Vec<&str>>();
+        
+        if let Some(contract) = reader.db.get_contract(addr)? {
+            Ok(hb.render(
+                "address.handlebars",
+                &json!({
+                    "address" : format!("0x{:x}",addr),
+                    "balance" : Ether(balance).html().text,
+                    "txs" : txs,
+                    "hascode" : true,
+                    "rawcode" : rawcode,
+                    "hascontract" : true,
+                    "contract_source" : contract.source,
+                    "contract_name" : contract.name,
+                    "contract_abi" : contract.abi,
+                    "contract_compiler" : contract.compiler,
+                    "contract_optimized": contract.optimized
+                })
+            )?)            
+        } else {
+            let solcversions =  contract::compilers(&cfg)?;
+            Ok(hb.render(
+                "address.handlebars",
+                &json!({
+                    "address" : format!("0x{:x}",addr),
+                    "balance" : Ether(balance).html().text,
+                    "txs" : txs,
+                    "hascode" : true,
+                    "rawcode" : rawcode,
+                    "hascontract" : false,
+                    "solcversions" : solcversions,
+                })
+            )?)
+        }
+    } else {    
+        Ok(hb.render(
+            "address.handlebars",
+            &json!({
+                "address" : format!("0x{:x}",addr),
+                "balance" : Ether(balance).html().text,
+                "txs"     : txs,
+                "hascode" : false,
+            })
+        )?)
+    }
 }
 
 pub fn home(reader: &BlockchainReader, hb: &Handlebars) -> Result<String, Error> {

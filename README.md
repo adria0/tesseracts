@@ -46,6 +46,9 @@ scan             =
 
 # the starting block to start to retrieve blocks (only iff scan==true)
 scan_start_block = 
+
+# the path where solc binaries are stored
+solc_path = 
 ```
 
 run the application with (if your config file is named `cfg.toml`)

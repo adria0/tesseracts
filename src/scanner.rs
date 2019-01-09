@@ -26,8 +26,12 @@ impl From<db::Error> for Error {
 
 fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<(), Error> {
     if let Some(mut next_block) = gs.db.get_last_block()? {
+        if let Some(cfg_start_block) = gs.cfg.scan_start_block {
+            if cfg_start_block > next_block {
+                next_block = cfg_start_block;
+            }
+        }    
         let until_block = wc.web3.eth().block_number().wait()?.low_u64();
-
         while next_block <= until_block && !gs.stop_signal.load(Ordering::SeqCst) {
             let block = wc
                 .web3
