@@ -84,6 +84,7 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
             &json!({
             "txhash"              : format!("0x{:x}",txid),
             "from"                : tx.from.html(),
+            "tonewcontract"       : tx.to.is_none(),
             "to"                  : tx.to.html(),
             "value"               : Ether(tx.value).html().text,
             "block"               : block,

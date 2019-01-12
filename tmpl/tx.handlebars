@@ -13,7 +13,13 @@
         </tr>
         <tr>
             <td>To</td>
-            <td><a href={{to.link}}>{{to.text}}</a></td>
+            <td>
+                {{ #if tonewcontract }}
+                New contract
+                {{ else }}
+                <a href={{to.link}}>{{to.text}}</a>
+                {{ /if }}
+            </td>
         </tr>
         <tr>
             <td>Value</td>
