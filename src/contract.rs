@@ -139,15 +139,25 @@ fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<(),Error> {
 
 pub fn call_to_string(abistr : &str, input: &[u8]) -> Result<Vec<String>,Error> {
     let abi = ethabi::Contract::load(abistr.as_bytes())?;
+
     for func in abi.functions() {
         let paramtypes : Vec<ParamType> = func.inputs.iter().map(|p| p.kind.clone()).collect();
         let sig = short_signature(&func.name,&paramtypes);
+
         if input[0..4] == sig[0..4] {
             let mut out = Vec::new();
             out.push(format!("function {}",&func.name));
-            for (i,token) in ethabi::decode(&paramtypes, &input[4..])?.iter().enumerate() {
-                out.push(format!("  [{}]  {:?}",i,token));
+
+            if func.inputs.len() > 0 {
+                let max_param_length = func.inputs.iter().map(|p| p.name.len()).max().unwrap();        
+
+                for (i,token) in ethabi::decode(&paramtypes, &input[4..])?.iter().enumerate() {
+                    let padding = (func.inputs[i].name.len()..max_param_length)
+                        .map(|_| " ").collect::<String>();
+                    out.push(format!("  [{}{}]  {:?}",func.inputs[i].name,padding,token));
+                }
             }
+
             return Ok(out);
         }
     }
@@ -157,13 +167,22 @@ pub fn call_to_string(abistr : &str, input: &[u8]) -> Result<Vec<String>,Error> 
 pub fn log_to_string(abistr : &str, txlog: web3::types::Log) -> Result<Vec<String>,Error> {
     let abi = ethabi::Contract::load(abistr.as_bytes())?;
     let event = abi.events().find(|e| e.signature()==txlog.topics[0]);
+
     if let Some(event) = event {
         let mut out = Vec::new();
         out.push(format!("event {}",&event.name));
+        
         let rawlog = ethabi::RawLog{topics: txlog.topics,data: txlog.data.0};
         let log = event.parse_log(rawlog)?;
-        for param in log.params {
-            out.push(format!("  [{}] {:?}",param.name,param.value));
+
+        if log.params.len() > 0 {
+            let max_param_length = log.params.iter().map(|p| p.name.len()).max().unwrap();        
+
+            for param in log.params {
+                let padding = (param.name.len()..max_param_length)
+                    .map(|_| " ").collect::<String>();
+                out.push(format!("  [{}{}] {:?}",param.name,padding,param.value));
+            }
         }
         Ok(out) 
     } else {
