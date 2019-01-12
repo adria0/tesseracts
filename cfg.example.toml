@@ -1,5 +1,5 @@
-db_path  = "db"
-web3_url = "http://localhost:8545"
+db_path  = "data/db_nn"
+web3_url = "https://nou.network/web3"
 scan     = false
 scan_start_block = 1
 bind     = "0.0.0.0:8000"

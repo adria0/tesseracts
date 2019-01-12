@@ -24,7 +24,7 @@ extern crate tiny_keccak;
 
 mod db;
 mod reader;
-mod render;
+mod explorer;
 mod scanner;
 mod state;
 mod types;
@@ -35,8 +35,6 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
 use rouille::Response;
-
-use types::Id;
 
 // it turns out that is not possible to put an Arc inside a rocket::State,
 //  rocket internally crashes when unreferencing, so it can be solved by
@@ -72,74 +70,23 @@ fn main() {
     println!("Lisening to {}...", &shared_ge.0.cfg.bind.clone()); // TODO: remove clones
     rouille::start_server(&shared_ge.0.cfg.bind.clone(), move |request| {
         router!(request,
-            (GET) (/) => {
-                 let wc = shared_ge.0.new_web3client();
-                 let reader = reader::BlockchainReader::new(&wc,&shared_ge.0.db);
-                 Response::html(
-                     match render::home(&reader,&shared_ge.0.hb) {
-                         Ok(html) => html,
-                         Err(err) => render::page(format!("Error: {:?}", err).as_str())
-                     }
-                 )
+            (GET)  (/) => {
+                explorer::get_home(&shared_ge.0)
             },
-            (GET) (/{id: String}) => {
-                 let wc = shared_ge.0.new_web3client();
-                 let reader = reader::BlockchainReader::new(&wc,&shared_ge.0.db);
-                 Response::html(
-                     if let Some(id) = Id::from(&id) {
-                         let html = match id {
-                             Id::Addr(addr) => render::addr_info(&shared_ge.0.cfg,&reader,&shared_ge.0.hb,&addr),
-                             Id::Tx(txid) => render::tx_info(&shared_ge.0.db,&reader,&shared_ge.0.hb,txid),
-                             Id::Block(block) => render::block_info(&reader,&shared_ge.0.hb,block)
-                         };
-                         match html {
-                             Ok(html) => html,
-                             Err(err) => render::page(format!("Error: {:?}", err).as_str())
-                         }
-                     } else {
-                         render::page("Not found")
-                     }
-                 )
+            (GET)  (/{id: String}) => {
+                explorer::get_object(&shared_ge.0,&id)
             },
-           (POST) (/{id: String}/contract) => {
-                if let Some(Id::Addr(addr)) = Id::from(&id) {
-                    
-                    let data = try_or_400!(post_input!(request, {
-                        contract_source: String,
-                        contract_compiler: String,
-                        contract_optimized: bool,
-                        contract_name: String,
-                    }));
-
-                    let contract = contract::compile(&shared_ge.0.cfg,
-                        &data.contract_source,
-                        &data.contract_name,
-                        &data.contract_compiler,
-                        data.contract_optimized).expect("Error compiling");
-
-                    let wc = shared_ge.0.new_web3client();
-                    let reader = reader::BlockchainReader::new(&wc,&shared_ge.0.db);    
-                    let code = reader.current_code(&addr).expect("failed to read code").0;
-                    
-                    // TODO: remove expect
-                    if contract::codeequals(&contract,&code).expect("failed to check equals") {
-                        let contractentry = db::Contract{
-                            source : data.contract_source,
-                            compiler : data.contract_compiler,
-                            optimized: data.contract_optimized,
-                            name : data.contract_name,
-                            abi : contract.abi.clone(),
-                            constructor : Vec::new(),
-                        };
-
-                        &shared_ge.0.db.set_contract(&addr,&contractentry).expect("cannot update db");
-                        Response::redirect_302(format!("/{}",id))
-                    } else {
-                        Response::html("Code does not match")
-                    }
-                } else {
-                    Response::html("bad input")
-                }
+            (POST) (/{id: String}/contract) => {
+                let data = try_or_400!(post_input!(request, {
+                    contract_source: String,
+                    contract_compiler: String,
+                    contract_optimized: bool,
+                    contract_name: String,
+                }));
+                explorer::post_contract(&shared_ge.0, &id,
+                    &data.contract_source, &data.contract_compiler,
+                    data.contract_optimized, &data.contract_name
+                )
             },
             _ => rouille::Response::empty_404()
         )

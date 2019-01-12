@@ -56,20 +56,20 @@ fn u64_to_le(v: u64) -> [u8; 8] {
         ((v >> 24) & 0xff) as u8,
         ((v >> 16) & 0xff) as u8,
         ((v >> 8) & 0xff) as u8,
-        ((v >> 0) & 0xff) as u8,
+        ((v     ) & 0xff) as u8,
     ]
 }
-fn le_to_u64(v: &[u8; 8]) -> u64 {
-    (v[7] as u64)
-        + ((v[6] as u64) << 8)
-        + ((v[5] as u64) << 16)
-        + ((v[4] as u64) << 24)
-        + ((v[3] as u64) << 32)
-        + ((v[2] as u64) << 40)
-        + ((v[1] as u64) << 48)
-        + ((v[0] as u64) << 56)
+fn le_to_u64(v: [u8; 8]) -> u64 {
+    u64::from(v[7])
+    + (u64::from(v[6]) << 8 )
+    + (u64::from(v[5]) << 16)
+    + (u64::from(v[4]) << 24)
+    + (u64::from(v[3]) << 32)
+    + (u64::from(v[2]) << 40)
+    + (u64::from(v[1]) << 48)
+    + (u64::from(v[0]) << 56)
 }
-
+ 
 impl<'a> Iterator for AddrTxs {
     type Item = H256;
 
@@ -110,7 +110,7 @@ impl From<serde_cbor::error::Error> for Error {
 fn u64_from_slice(v: &[u8]) -> u64 {
     let mut le = [0; 8];
     le[..].copy_from_slice(v);
-    le_to_u64(&le)
+    le_to_u64(le)
 }
 
 impl AppDB {
@@ -170,7 +170,8 @@ impl AppDB {
         from_k.extend_from_slice(&revtxindex);
         from_k.extend_from_slice(&tx.hash);
 
-        Ok(self.db.put(&from_k.to_owned(), &[TxLinkType::In as u8])?)
+        self.db.put(&from_k.to_owned(), &[TxLinkType::In as u8])?;
+        Ok(())
     }
 
     pub fn get_tx(&self, txhash: &H256) -> Result<Option<Transaction>, Error> {
@@ -196,7 +197,8 @@ impl AppDB {
         let block_no = u64_to_le(block.number.unwrap().low_u64());
         b_k.extend_from_slice(&block_no);
 
-        Ok(self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?)
+        self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?;
+        Ok(())
     }
 
     pub fn get_block(&self, blockno: u64) -> Result<Option<Block<H256>>, Error> {
@@ -208,7 +210,7 @@ impl AppDB {
             .map(|bytes| bytes.map(|v| from_slice::<Block<H256>>(&*v).unwrap()))?)
     }
 
-    pub fn iter_addr_txs<'a>(&self, addr: &Address) -> AddrTxs {
+    pub fn iter_addr_txs(&self, addr: &Address) -> AddrTxs {
         let mut key: Vec<u8> = vec![RecordType::TxLink as u8];
         key.extend_from_slice(addr);
 
@@ -222,7 +224,8 @@ impl AppDB {
     pub fn set_contract(&self, addr: &Address, contract: &Contract) -> Result<(),Error> {
         let mut key: Vec<u8> = vec![RecordType::ContractAbi as u8];
         key.extend_from_slice(addr);
-        Ok(self.db.put(&key, &to_vec(contract)?)?)
+        self.db.put(&key, &to_vec(contract)?)?;
+        Ok(())
     }
 
     pub fn get_contract(&self, addr: &Address) -> Result<Option<Contract>,Error> {
@@ -244,7 +247,8 @@ impl AppDB {
     }
 
     pub fn set_last_block(&self, n: u64) -> Result<(), Error> {
-        Ok(self.db.put(&[RecordType::NextBlock as u8], &u64_to_le(n))?)
+        self.db.put(&[RecordType::NextBlock as u8], &u64_to_le(n))?;
+        Ok(())
     }
 }
 

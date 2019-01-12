@@ -28,8 +28,10 @@ pub struct SolcJson {
 
 #[derive(Debug)]
 pub enum Error {
+    ContractInvalid,
     ContractNotFound,
     FunctionNotFound,
+    CodeDoesNotMatch,
     EventNotFound,
     Io(std::io::Error),
     FromHex(rustc_hex::FromHexError),
@@ -68,7 +70,17 @@ pub fn compilers(cfg : &Config) -> Result<Vec<String>,io::Error> {
     )
 }
 
-pub fn compile(cfg : &Config, source: &str, contractname: &str, compiler: &str, optimized: bool) -> Result<SolcContract,Error> {
+pub fn compile_and_verify(
+
+    cfg : &Config,
+    source: &str,
+    contractname: &str,
+    compiler: &str,
+    optimized: bool,
+    code: &[u8])
+
+-> Result<String,Error> {
+
     let mut rng = thread_rng();
     let chars: String = std::iter::repeat(())
         .map(|()| rng.sample(Alphanumeric))
@@ -101,26 +113,27 @@ pub fn compile(cfg : &Config, source: &str, contractname: &str, compiler: &str, 
 
     let deserialized: SolcJson = serde_json::from_str(&contents)?;
     let key = format!("{}:{}",&input,contractname);
+
     if let Some(contract) = deserialized.contracts.get(&key) {
-        Ok(contract.clone()) 
+        code_equals(&contract, &code)?;
+        Ok(contract.abi.clone()) 
     } else {
         Err(Error::ContractNotFound)
     }
 }
 
-pub fn codeequals(contract : &SolcContract, code: &[u8]) -> Result<bool,Error> {
+fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<(),Error> {
     let binruntime : Vec<u8> = contract.binruntime.from_hex()?;
 
     // compiled code includes the swarm hash (32 bytes) + 00 29
     if code.len() != binruntime.len() || code.len() < 34 {
-        Ok(false)
+        Err(Error::ContractInvalid)
+    } else if code[0..code.len()-34] != binruntime[0..code.len()-34] {
+        println!("blockchain {}",code.to_hex::<String>());
+        println!("compiled   {}",binruntime.to_hex::<String>());
+        Err(Error::CodeDoesNotMatch)
     } else {
-        let equals = &code[0..code.len()-34] == &binruntime[0..code.len()-34];
-        if !equals { 
-            println!("blockchain {}",code.to_hex::<String>());
-            println!("compiled   {}",binruntime.to_hex::<String>());
-        }
-        Ok(equals)
+        Ok(())
     }
 }
 
@@ -143,7 +156,7 @@ pub fn call_to_string(abistr : &str, input: &[u8]) -> Result<Vec<String>,Error> 
 
 pub fn log_to_string(abistr : &str, txlog: web3::types::Log) -> Result<Vec<String>,Error> {
     let abi = ethabi::Contract::load(abistr.as_bytes())?;
-    let event = abi.events().filter(|e| e.signature()==(&txlog).topics[0]).next();
+    let event = abi.events().find(|e| e.signature()==txlog.topics[0]);
     if let Some(event) = event {
         let mut out = Vec::new();
         out.push(format!("event {}",&event.name));

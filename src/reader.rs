@@ -33,7 +33,7 @@ pub struct BlockchainReader<'a> {
 
 impl<'a> BlockchainReader<'a> {
     pub fn new(wc: &'a Web3Client, db: &'a AppDB) -> Self {
-        BlockchainReader { wc: wc, db: db }
+        BlockchainReader { wc, db }
     }
     pub fn current_block_number(&self) -> Result<u64, Error> {
         Ok(self.wc.web3.eth().block_number().wait()?.low_u64())
@@ -100,4 +100,5 @@ impl<'a> BlockchainReader<'a> {
             Ok(None)
         }
     }
+
 }
