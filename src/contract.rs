@@ -32,6 +32,7 @@ pub enum Error {
     ContractNotFound,
     FunctionNotFound,
     CodeDoesNotMatch,
+    CompilerNotFound,
     EventNotFound,
     Io(std::io::Error),
     FromHex(rustc_hex::FromHexError),
@@ -81,11 +82,16 @@ pub fn compile_and_verify(
 
 -> Result<String,Error> {
 
+    if compilers(&cfg)?.into_iter().find(|c| c==&compiler).is_none() {
+        return Err(Error::CompilerNotFound);
+    }
+
     let mut rng = thread_rng();
     let chars: String = std::iter::repeat(())
         .map(|()| rng.sample(Alphanumeric))
         .take(12)
         .collect();
+
     let mut tmp_dir_path = std::env::temp_dir();
     tmp_dir_path.push(chars);
 

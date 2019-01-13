@@ -1,8 +1,7 @@
-# rustalleda
+# tesseracts
 A minimalistic block explorer to learn rust.
 
-This is an experimantal block explorer written in rust, the name
-comes from the famous catalan chef [Carme Ruscalleda](https://en.wikipedia.org/wiki/Carme_Ruscalleda). At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
+This is an experimantal block explorer written in rust. At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
 
 - [X] Last blocks page
 - [X] Show block
@@ -13,9 +12,8 @@ comes from the famous catalan chef [Carme Ruscalleda](https://en.wikipedia.org/w
 - [X] Configuration file
 - [X] Embeeded templates (does not need external files)
 - [X] Upload contracts and parse calls and logs
-- [ ] Add 
+- [X] Block & Tx pagination
 - [ ] Parse clique block headers
-- [ ] Block & Tx pagination
 - [ ] Parallel download recipts
 - [ ] Copy the database via DevP2P instead Web3
 - [ ] See personal ERC20 tokens status
@@ -25,7 +23,7 @@ comes from the famous catalan chef [Carme Ruscalleda](https://en.wikipedia.org/w
 
 ## Set up
 
-To run rustalleda, you need to install rust nightly, so first install rust with rustup 
+To run tesseracts, you need to install rust nightly, so first install rust with rustup 
 
 `curl https://sh.rustup.rs -sSf | s` 
 

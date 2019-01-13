@@ -47,7 +47,7 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<(), Error> {
             );
             for tx in &block.transactions {
                 let re = wc.web3.eth().transaction_receipt(tx.hash).wait()?.unwrap();
-                gs.db.push_tx(&tx, &re)?;
+                gs.db.push_tx(&tx, Some(&re))?;
             }
 
             gs.db

@@ -17,7 +17,6 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
         let mut gas_used = String::from("");
         let mut contract_address = TextWithLink::blank();
         let mut status = String::from("");
-        let mut timestamp = String::from("");
         
         if let Some(receipt) = receipt {
 

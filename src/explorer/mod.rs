@@ -6,6 +6,7 @@ mod error;
 mod home;
 mod html;
 mod tx;
+mod paginate;
 
 use super::state::GlobalState;
 use super::reader::BlockchainReader;
@@ -68,7 +69,14 @@ pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
     Response::html(
         if let Some(id) = Id::from(&id) {
             let html = match id {
-                Id::Addr(addr) => address::html(&ge.cfg,&reader,&ge.hb,&addr),
+                Id::Addr(addr) => {            
+                    let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>();
+                    if let Ok(page_no) = page_no {
+                        address::html(&ge.db,&ge.cfg,&reader,&ge.hb,&addr,page_no)
+                    } else {
+                        Ok(error_page("invalid parameter"))
+                    }
+                },
                 Id::Tx(txid) => tx::html(&ge.db,&reader,&ge.hb,txid),
                 Id::Block(block) => block::html(&reader,&ge.hb,block)
             };

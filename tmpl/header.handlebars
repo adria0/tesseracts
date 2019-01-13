@@ -1,4 +1,5 @@
 <html>
+<link href="https://fonts.googleapis.com/css?family=Major+Mono+Display" rel="stylesheet"> 
 <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"
     integrity="sha256-2YQRJMXD7pIAPHiXr0s+vlRWA7GYJEK0ARns7k2sbHY="
@@ -43,7 +44,9 @@ h6 {
 textarea {
     height: 200px;
 }
-@import url();
+.disabled {
+    color: #777;
+}
 .search {
   width: 100%;
   position: relative;
@@ -87,15 +90,21 @@ textarea {
   cursor: pointer;
 }
 
+.majorfont {
+    font-family: 'Major Mono Display', monospace;
+}
+
 </style>
 <body>
 <div class="container">
 
 <div class="row">
-  <div class="one-third column">
-    <h2 class="title"><a href="/"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Rust_programming_language_black_logo.svg/240px-Rust_programming_language_black_logo.svg.png" height="50" width="50"></a>&nbsp;Rustalleda</h2>
+  <div class="one-half column">
+    <h2 class="title majorfont">
+        <a href="/"><img src="https://d2f99xq7vri1nk.cloudfront.net/OnBeyondCubes600x600.jpg" height="50" width="50"></a>
+        &nbsp;tesseracts</h2>
   </div>
-  <div class="two-thirds column">
+  <div class="one-half column">
     <div class="search">
     <input class="searchTerm" placeholder="Search by Address / Txhash / Block ..." /><input class="searchButton" type="button" />
     </div>    
