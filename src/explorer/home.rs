@@ -3,7 +3,7 @@ use web3::types::{BlockNumber,BlockId};
 use reader::BlockchainReader;
 
 use super::error::Error;
-use super::html::HtmlRender;
+use super::html::{Timestamp,HtmlRender};
 
 pub fn html(
     reader: &BlockchainReader,
@@ -16,8 +16,9 @@ pub fn html(
         let blockno = BlockId::Number(BlockNumber::Number(last_blockno));
         if let Some(block) = reader.block(last_blockno)? {
             blocks.push(json!({
-                "block"    : blockno.html(),
-                "tx_count" : block.transactions.len()
+                "block"     : blockno.html(),
+                "tx_count"  : block.transactions.len(),
+                "timestamp" : Timestamp(block.timestamp).html().text
             }));
         } else {
             return Err(Error::Unexpected);

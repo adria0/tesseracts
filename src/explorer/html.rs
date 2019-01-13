@@ -1,6 +1,7 @@
 use web3::types::{Address, BlockId, BlockNumber, Bytes, Transaction, TransactionId, U256};
 use rustc_hex::ToHex;
 use serde_derive::Serialize;
+use chrono::prelude::*;
 
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
@@ -10,6 +11,7 @@ lazy_static! {
 pub struct TransactionIdShort(pub TransactionId);
 pub struct GWei(pub U256);
 pub struct Ether(pub U256);
+pub struct Timestamp(pub U256);
 
 #[derive(Serialize)]
 pub struct TextWithLink {
@@ -91,7 +93,6 @@ impl HtmlRender for TransactionIdShort {
     }
 }
 
-
 impl HtmlRender for BlockId {
     fn html(&self) -> TextWithLink {
         match &self {
@@ -121,6 +122,13 @@ impl HtmlRender for Ether {
             }
             TextWithLink::new_text(format!("{}.{} Ξ", ether, remain))
         }
+    }
+}
+
+impl HtmlRender for Timestamp {
+    fn html(&self) -> TextWithLink {
+        let dt = Utc.timestamp(self.0.low_u64() as i64, 0);
+        TextWithLink::new_text(dt.to_rfc2822())
     }
 }
 

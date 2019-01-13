@@ -4,12 +4,14 @@
     <thead>
         <th>Block</th>
         <th>Transactions</th>
+        <th>Timedate</th>
     </thead>
     <tbody>
         {{#each blocks}}
         <tr>
-            <td class=fixed><a href={{block.link}}>{{block.text}}</td>
-            <td class=fixed>{{tx_count}}</td>
+            <td><a href={{block.link}}>{{block.text}}</td>
+            <td>{{tx_count}}</td>
+            <td>{{timestamp}}</td>
         </tr>
         {{/each}}
     </tbody>

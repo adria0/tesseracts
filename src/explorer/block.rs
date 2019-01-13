@@ -26,7 +26,7 @@ pub fn html(
             "gas_used"         : block.gas_used.low_u64(),
             "gas_limit"        : block.gas_limit.low_u64(),
             "extra_data"       : block.extra_data,
-            "timestamp"        : block.timestamp,
+            "timestamp"        : Timestamp(block.timestamp).html().text,
             "difficulty"       : block.difficulty,
             "total_difficulty" : block.total_difficulty,
             "seal_fields"      : block.seal_fields,

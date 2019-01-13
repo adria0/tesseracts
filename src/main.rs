@@ -21,6 +21,7 @@ extern crate web3;
 extern crate ethabi;
 extern crate reqwest;
 extern crate tiny_keccak;
+extern crate chrono;
 
 mod db;
 mod reader;

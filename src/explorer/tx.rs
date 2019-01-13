@@ -17,18 +17,20 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
         let mut gas_used = String::from("");
         let mut contract_address = TextWithLink::blank();
         let mut status = String::from("");
+        let mut timestamp = String::from("");
         
         if let Some(receipt) = receipt {
 
             cumulative_gas_used = format!("{}", receipt.cumulative_gas_used.low_u64());
             gas_used = format!("{}", receipt.gas_used.low_u64());
+
             contract_address = receipt
                 .contract_address
                 .map_or_else( TextWithLink::blank, |c| c.html());
+
             status = receipt
                 .status
                 .map_or_else(|| String::from(""), |s| format!("{}", s));
-
 
             for (_, log) in receipt.logs.into_iter().enumerate() {
                 
@@ -78,7 +80,7 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
             TextWithLink::blank,
             |b| BlockId::Number(BlockNumber::Number(b.low_u64())).html(),
         );
-
+        
         Ok(hb.render(
             "tx.handlebars",
             &json!({
@@ -88,6 +90,7 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
             "to"                  : tx.to.html(),
             "value"               : Ether(tx.value).html().text,
             "block"               : block,
+            "timestamp"           : Timestamp(receipt.timestamp).html.text,
             "gas"                 : tx.gas.low_u64(),
             "gas_price"           : GWei(tx.gas_price).html().text,
             "cumulative_gas_used" : cumulative_gas_used,
