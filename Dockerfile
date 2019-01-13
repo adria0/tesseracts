@@ -11,15 +11,15 @@ RUN apk add build-base \
 
 WORKDIR /home/rust/
 COPY . .
-WORKDIR /home/rust/rustalleda
+WORKDIR /home/rust/tesseracts
 RUN cargo build --release
 
 FROM alpine:edge
 WORKDIR /home/rust/
-COPY --from=builder /home/rust/target/release/rustalleda .
+COPY --from=builder /home/rust/target/release/tesseracts .
 
 EXPOSE 8000
 
 RUN apk add clang clang-libs ca-certificates
 
-ENTRYPOINT ["./rustalleda"]
+ENTRYPOINT ["./tesseracts"]
