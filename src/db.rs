@@ -12,6 +12,8 @@ enum RecordType {
     Receipt = 5,
     ContractAbi = 6,
     TxLinkCount = 7,
+    NonEmptyBlock = 8,
+    NonEmptyBlockCount = 9,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -38,10 +40,17 @@ impl AddrTxLinks {
     }
 }
 
-trait Record {
-    fn id() -> u8;
-
+pub struct NonEmptyBlocks {
+    iter: DBIterator,
+    key: Vec<u8>,
 }
+
+impl NonEmptyBlocks {
+    fn new(iter: DBIterator, key: Vec<u8>) -> Self {
+        NonEmptyBlocks { iter, key }
+    }
+}
+
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct Contract {
@@ -85,6 +94,21 @@ impl<'a> Iterator for AddrTxLinks {
             if key.len() > self.key.len() && key[..self.key.len()] == self.key[..] {
                 let tx = H256::from_slice(&key[self.key.len() + 16..]);
                 return Some(tx);
+            }
+        }
+        None
+    }
+}
+
+impl<'a> Iterator for NonEmptyBlocks {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<u64> {
+        if let Some(kv) = self.iter.next() {
+            let key = &*(kv.0);
+            if key.len() > self.key.len() && key[..self.key.len()] == self.key[..] {
+                let blockno = u64_from_slice(&key[self.key.len()..]);
+                return Some(std::u64::MAX -blockno);
             }
         }
         None
@@ -197,12 +221,40 @@ impl AppDB {
     }
 
     pub fn push_block(&self, block: &Block<H256>) -> Result<(), Error> {
+        
+        // add the block
         let mut b_k = vec![RecordType::Block as u8];
         let block_no = u64_to_le(block.number.unwrap().low_u64());
         b_k.extend_from_slice(&block_no);
 
         self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?;
+
+        if block.transactions.len() > 0 {
+
+            // annotate a non-empty-block
+            let mut neb_k = vec![RecordType::NonEmptyBlock as u8];
+            let block_no_rev = u64_to_le(std::u64::MAX - block.number.unwrap().low_u64());
+            neb_k.extend_from_slice(&block_no_rev);
+            self.db.put(neb_k.as_slice(), &[])?;
+            
+            // increment counter of non-empty-blocks
+            println!("Incrementing NonEmptyBlockCount");
+            self.inc_u64(&vec![RecordType::NonEmptyBlockCount as u8])?;
+        }
         Ok(())
+    }
+
+    pub fn iter_non_empty_blocks(&self) -> Result<NonEmptyBlocks,Error> {
+        let key = vec![RecordType::NonEmptyBlock as u8];
+        let iter = self
+            .db
+            .iterator(IteratorMode::From(&key, Direction::Forward));
+        Ok(NonEmptyBlocks::new(iter, key))
+    }
+
+    pub fn count_non_empty_blocks(&self) -> Result<u64,Error> {
+        let key = vec![RecordType::NonEmptyBlockCount as u8];
+        Ok(self.get_u64(&key)?.unwrap_or(0))
     }
 
     pub fn get_block(&self, blockno: u64) -> Result<Option<Block<H256>>, Error> {
@@ -230,11 +282,11 @@ impl AppDB {
         key.extend_from_slice(addr);
         Ok(self.get_u64(&key)?.unwrap_or(0))
     }
+
     pub fn inc_addr_tx_links(&self, addr: &Address) -> Result<(),Error> {
         let mut key: Vec<u8> = vec![RecordType::TxLinkCount as u8];
         key.extend_from_slice(addr);
-        self.set_u64(&key,1+self.get_u64(&key)?.unwrap_or(0))?;
-        Ok(())
+        self.inc_u64(&key)
     }
 
     pub fn set_contract(&self, addr: &Address, contract: &Contract) -> Result<(),Error> {
@@ -261,6 +313,10 @@ impl AppDB {
 
     pub fn set_last_block(&self, n: u64) -> Result<(), Error> {
         self.set_u64(&[RecordType::NextBlock as u8],n)
+    }
+
+    fn inc_u64(&self, key : &[u8]) -> Result<(),Error> {
+         self.set_u64(&key,1+self.get_u64(&key)?.unwrap_or(0))       
     }
 
     fn get_u64(&self, key : &[u8]) -> Result<Option<u64>, Error> {
@@ -355,7 +411,6 @@ mod tests {
         assert_eq!(Ok(0), appdb.count_addr_tx_links(&a2));
         assert_eq!(Ok(0), appdb.count_addr_tx_links(&a3));
 
-
         assert_eq!(Ok(()), appdb.push_tx(&tx1, Some(&tr1)));
         assert_eq!(Ok(1), appdb.count_addr_tx_links(&a1));
         assert_eq!(Ok(1), appdb.count_addr_tx_links(&a2));
@@ -397,4 +452,16 @@ mod tests {
         assert_eq!(Ok(()), appdb.set_last_block(0xaabbccdd11223344));
         assert_eq!(Ok(Some(0xaabbccdd11223344)), appdb.get_last_block());
     }
+
+    #[test]
+    fn test_inc() {
+        let appdb = init();
+        let key = vec![1];
+        assert_eq!(Ok(None), appdb.get_u64(&key));
+        assert_eq!(Ok(()), appdb.inc_u64(&key));
+        assert_eq!(Ok(Some(1)), appdb.get_u64(&key));
+        assert_eq!(Ok(()), appdb.inc_u64(&key));
+        assert_eq!(Ok(Some(2)), appdb.get_u64(&key));
+    }
+
 }

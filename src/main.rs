@@ -53,6 +53,8 @@ fn main() {
     .expect("cannot read config");
 
     let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
+    println!("non-empty-blocks {:?}",shared_ge.0.db.count_non_empty_blocks());
+
 
     if shared_ge.0.cfg.scan {
         let shared_ge_scan = shared_ge.0.clone();

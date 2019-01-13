@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Pagination {
     pub from : u64,
     pub to   : u64,
