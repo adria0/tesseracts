@@ -61,7 +61,7 @@ pub struct Web3Client {
 
 impl GlobalState {
     pub fn new(cfg: Config) -> Self {
-        let mut reg = Handlebars::new();
+        let mut hb = Handlebars::new();
 
         // process assets
         for asset in Asset::iter() {
@@ -69,13 +69,13 @@ impl GlobalState {
 
             let tmpl = String::from_utf8(
                 Asset::get(file.as_str())
-                    .expect(&format!("Unable to read file {}", file))
+                    .unwrap_or_else(|| panic!("Unable to read file {}", file))
                     .to_vec(),
             )
-            .expect(&format!("Unable to decode file {}", file));
+            .unwrap_or_else(|_| panic!("Unable to decode file {}", file));
 
-            reg.register_template_string(file.as_str(), &tmpl)
-                .expect(&format!("Invalid template {}", file));
+            hb.register_template_string(file.as_str(), &tmpl)
+                .unwrap_or_else(|_| panic!("Invalid template {}", file));
         }
 
         // create global stop signal
@@ -88,19 +88,14 @@ impl GlobalState {
                 .expect("error setting last block");
         }
 
-        GlobalState {
-            hb: reg,
-            cfg: cfg,
-            db: db,
-            stop_signal: stop_signal,
-        }
+        GlobalState { cfg, db, hb, stop_signal }
     }
     pub fn new_web3client(&self) -> Web3Client {
         let (eloop, transport) = web3::transports::Http::new(self.cfg.web3_url.as_str())
             .expect("opening http connection");
 
         Web3Client {
-            eloop: eloop,
+            eloop,
             web3: web3::Web3::new(transport),
         }
     }

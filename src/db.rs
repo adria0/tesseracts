@@ -11,6 +11,9 @@ enum RecordType {
     Block = 4,
     Receipt = 5,
     ContractAbi = 6,
+    TxLinkCount = 7,
+    NonEmptyBlock = 8,
+    NonEmptyBlockCount = 9,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -26,16 +29,28 @@ pub struct AppDB {
     db: DB,
 }
 
-pub struct AddrTxs {
+pub struct AddrTxLinks {
     iter: DBIterator,
     key: Vec<u8>,
 }
 
-impl AddrTxs {
+impl AddrTxLinks {
     fn new(iter: DBIterator, key: Vec<u8>) -> Self {
-        AddrTxs { iter, key }
+        AddrTxLinks { iter, key }
     }
 }
+
+pub struct NonEmptyBlocks {
+    iter: DBIterator,
+    key: Vec<u8>,
+}
+
+impl NonEmptyBlocks {
+    fn new(iter: DBIterator, key: Vec<u8>) -> Self {
+        NonEmptyBlocks { iter, key }
+    }
+}
+
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct Contract {
@@ -56,21 +71,21 @@ fn u64_to_le(v: u64) -> [u8; 8] {
         ((v >> 24) & 0xff) as u8,
         ((v >> 16) & 0xff) as u8,
         ((v >> 8) & 0xff) as u8,
-        ((v >> 0) & 0xff) as u8,
+        ((v     ) & 0xff) as u8,
     ]
 }
-fn le_to_u64(v: &[u8; 8]) -> u64 {
-    (v[7] as u64)
-        + ((v[6] as u64) << 8)
-        + ((v[5] as u64) << 16)
-        + ((v[4] as u64) << 24)
-        + ((v[3] as u64) << 32)
-        + ((v[2] as u64) << 40)
-        + ((v[1] as u64) << 48)
-        + ((v[0] as u64) << 56)
+fn le_to_u64(v: [u8; 8]) -> u64 {
+    u64::from(v[7])
+    + (u64::from(v[6]) << 8 )
+    + (u64::from(v[5]) << 16)
+    + (u64::from(v[4]) << 24)
+    + (u64::from(v[3]) << 32)
+    + (u64::from(v[2]) << 40)
+    + (u64::from(v[1]) << 48)
+    + (u64::from(v[0]) << 56)
 }
-
-impl<'a> Iterator for AddrTxs {
+ 
+impl<'a> Iterator for AddrTxLinks {
     type Item = H256;
 
     fn next(&mut self) -> Option<H256> {
@@ -79,6 +94,21 @@ impl<'a> Iterator for AddrTxs {
             if key.len() > self.key.len() && key[..self.key.len()] == self.key[..] {
                 let tx = H256::from_slice(&key[self.key.len() + 16..]);
                 return Some(tx);
+            }
+        }
+        None
+    }
+}
+
+impl<'a> Iterator for NonEmptyBlocks {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<u64> {
+        if let Some(kv) = self.iter.next() {
+            let key = &*(kv.0);
+            if key.len() > self.key.len() && key[..self.key.len()] == self.key[..] {
+                let blockno = u64_from_slice(&key[self.key.len()..]);
+                return Some(std::u64::MAX -blockno);
             }
         }
         None
@@ -110,7 +140,7 @@ impl From<serde_cbor::error::Error> for Error {
 fn u64_from_slice(v: &[u8]) -> u64 {
     let mut le = [0; 8];
     le[..].copy_from_slice(v);
-    le_to_u64(&le)
+    le_to_u64(le)
 }
 
 impl AppDB {
@@ -118,59 +148,58 @@ impl AppDB {
         Ok(DB::open_default(path).map(|x| AppDB { db: x })?)
     }
 
-    pub fn push_tx(&self, tx: &Transaction, tr: &TransactionReceipt) -> Result<(), Error> {
+    fn add_tx_link(&self, tx: &Transaction, link_type: TxLinkType, addr: &Address) -> Result<(), Error> {
+        let revblockno = u64_to_le(std::u64::MAX - tx.block_number.unwrap().low_u64());
+        let revtxindex = u64_to_le(std::u64::MAX - tx.block_number.unwrap().low_u64());
+
+        let mut key: Vec<u8> = vec![RecordType::TxLink as u8];
+        key.extend_from_slice(&addr);
+        key.extend_from_slice(&revblockno);
+        key.extend_from_slice(&revtxindex);
+        key.extend_from_slice(&tx.hash);
+
+        if self.db.get(&key)?.is_none() {
+            self.db.put(&key.to_owned(), &[link_type as u8])?;
+            self.inc_addr_tx_links(&addr)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn push_tx(&self, tx: &Transaction, tr: Option<&TransactionReceipt>) -> Result<(), Error> {
         // store tx
         let mut tx_k = vec![RecordType::Tx as u8];
         tx_k.extend_from_slice(&tx.hash);
         self.db
             .put(tx_k.as_slice(), to_vec(tx).unwrap().as_slice())?;
 
-        // store receipt
-        let mut r_k = vec![RecordType::Receipt as u8];
-        r_k.extend_from_slice(&tx.hash);
-        self.db
-            .put(r_k.as_slice(), to_vec(tr).unwrap().as_slice())?;
-
-        // store receipt -> tx
-        let revblockno = u64_to_le(std::u64::MAX - tx.block_number.unwrap().low_u64());
-        let revtxindex = u64_to_le(std::u64::MAX - tx.block_number.unwrap().low_u64());
-
-        if let Some(addr) = tr.contract_address {
-            let mut contract_k: Vec<u8> = vec![RecordType::TxLink as u8];
-            contract_k.extend_from_slice(&addr);
-            contract_k.extend_from_slice(&revblockno);
-            contract_k.extend_from_slice(&revtxindex);
-            contract_k.extend_from_slice(&tx.hash);
-            self.db
-                .put(&contract_k.to_owned(), &[TxLinkType::CreateContract as u8])?;
+        if let Some(tr) = tr {
+            // store receipt
+            let mut r_k = vec![RecordType::Receipt as u8];
+            r_k.extend_from_slice(&tx.hash);
+            self.db.put(r_k.as_slice(), to_vec(tr).unwrap().as_slice())?;
+            // TxLink for contract
+            if let Some(addr) = tr.contract_address {
+                self.add_tx_link(&tx,TxLinkType::CreateContract,&addr)?;
+            }
         }
 
-        // store addr->tx
+        // TxLink for to/from
         if let Some(to) = tx.to {
-            let mut to_k: Vec<u8> = vec![RecordType::TxLink as u8];
-            to_k.extend_from_slice(&to);
-            to_k.extend_from_slice(&revblockno);
-            to_k.extend_from_slice(&revtxindex);
-            to_k.extend_from_slice(&tx.hash);
-
             let link_type = if tx.from == to {
                 TxLinkType::InOut
             } else {
                 TxLinkType::Out
             };
-            self.db.put(to_k.as_slice(), &[link_type as u8])?;
+            self.add_tx_link(&tx,link_type,&to)?;
             if link_type == TxLinkType::InOut {
                 return Ok(());
             }
         }
 
-        let mut from_k: Vec<u8> = vec![RecordType::TxLink as u8];
-        from_k.extend_from_slice(&tx.from);
-        from_k.extend_from_slice(&revblockno);
-        from_k.extend_from_slice(&revtxindex);
-        from_k.extend_from_slice(&tx.hash);
-
-        Ok(self.db.put(&from_k.to_owned(), &[TxLinkType::In as u8])?)
+        // TxLink for from 
+        self.add_tx_link(&tx,TxLinkType::In,&tx.from)?;
+        Ok(())
     }
 
     pub fn get_tx(&self, txhash: &H256) -> Result<Option<Transaction>, Error> {
@@ -192,11 +221,40 @@ impl AppDB {
     }
 
     pub fn push_block(&self, block: &Block<H256>) -> Result<(), Error> {
+        
+        // add the block
         let mut b_k = vec![RecordType::Block as u8];
         let block_no = u64_to_le(block.number.unwrap().low_u64());
         b_k.extend_from_slice(&block_no);
 
-        Ok(self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?)
+        self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?;
+
+        if block.transactions.len() > 0 {
+
+            // annotate a non-empty-block
+            let mut neb_k = vec![RecordType::NonEmptyBlock as u8];
+            let block_no_rev = u64_to_le(std::u64::MAX - block.number.unwrap().low_u64());
+            neb_k.extend_from_slice(&block_no_rev);
+            self.db.put(neb_k.as_slice(), &[])?;
+            
+            // increment counter of non-empty-blocks
+            println!("Incrementing NonEmptyBlockCount");
+            self.inc_u64(&vec![RecordType::NonEmptyBlockCount as u8])?;
+        }
+        Ok(())
+    }
+
+    pub fn iter_non_empty_blocks(&self) -> Result<NonEmptyBlocks,Error> {
+        let key = vec![RecordType::NonEmptyBlock as u8];
+        let iter = self
+            .db
+            .iterator(IteratorMode::From(&key, Direction::Forward));
+        Ok(NonEmptyBlocks::new(iter, key))
+    }
+
+    pub fn count_non_empty_blocks(&self) -> Result<u64,Error> {
+        let key = vec![RecordType::NonEmptyBlockCount as u8];
+        Ok(self.get_u64(&key)?.unwrap_or(0))
     }
 
     pub fn get_block(&self, blockno: u64) -> Result<Option<Block<H256>>, Error> {
@@ -208,7 +266,7 @@ impl AppDB {
             .map(|bytes| bytes.map(|v| from_slice::<Block<H256>>(&*v).unwrap()))?)
     }
 
-    pub fn iter_addr_txs<'a>(&self, addr: &Address) -> AddrTxs {
+    pub fn iter_addr_tx_links(&self, addr: &Address) -> AddrTxLinks {
         let mut key: Vec<u8> = vec![RecordType::TxLink as u8];
         key.extend_from_slice(addr);
 
@@ -216,13 +274,26 @@ impl AppDB {
             .db
             .iterator(IteratorMode::From(&key, Direction::Forward));
 
-        AddrTxs::new(iter, key)
+        AddrTxLinks::new(iter, key)
+    }
+
+    pub fn count_addr_tx_links(&self, addr: &Address) -> Result<u64,Error> {
+        let mut key: Vec<u8> = vec![RecordType::TxLinkCount as u8];
+        key.extend_from_slice(addr);
+        Ok(self.get_u64(&key)?.unwrap_or(0))
+    }
+
+    pub fn inc_addr_tx_links(&self, addr: &Address) -> Result<(),Error> {
+        let mut key: Vec<u8> = vec![RecordType::TxLinkCount as u8];
+        key.extend_from_slice(addr);
+        self.inc_u64(&key)
     }
 
     pub fn set_contract(&self, addr: &Address, contract: &Contract) -> Result<(),Error> {
         let mut key: Vec<u8> = vec![RecordType::ContractAbi as u8];
         key.extend_from_slice(addr);
-        Ok(self.db.put(&key, &to_vec(contract)?)?)
+        self.db.put(&key, &to_vec(contract)?)?;
+        Ok(())
     }
 
     pub fn get_contract(&self, addr: &Address) -> Result<Option<Contract>,Error> {
@@ -237,14 +308,27 @@ impl AppDB {
     }
 
     pub fn get_last_block(&self) -> Result<Option<u64>, Error> {
-        Ok(self
-            .db
-            .get(&[RecordType::NextBlock as u8])
-            .map(|bytes| bytes.map(|v| u64_from_slice(&*v)))?)
+        self.get_u64(&[RecordType::NextBlock as u8])
     }
 
     pub fn set_last_block(&self, n: u64) -> Result<(), Error> {
-        Ok(self.db.put(&[RecordType::NextBlock as u8], &u64_to_le(n))?)
+        self.set_u64(&[RecordType::NextBlock as u8],n)
+    }
+
+    fn inc_u64(&self, key : &[u8]) -> Result<(),Error> {
+         self.set_u64(&key,1+self.get_u64(&key)?.unwrap_or(0))       
+    }
+
+    fn get_u64(&self, key : &[u8]) -> Result<Option<u64>, Error> {
+        Ok(self
+            .db
+            .get(&key)
+            .map(|bytes| bytes.map(|v| u64_from_slice(&*v)))?)
+    }
+
+    fn set_u64(&self, key: &[u8], n: u64) -> Result<(), Error> {
+        self.db.put(&key, &u64_to_le(n))?;
+        Ok(())
     }
 }
 
@@ -280,8 +364,10 @@ mod tests {
         let a3 = hex_to_addr("0x1eb983836ea12dc37cc4da2effae9c9fbd0b395c").unwrap();
         let h1 = hex_to_h256("0xd69fc1890a1b2742b5c2834d031e34ba55ef3820d463a8d0a674bb5dd9a3b74b")
             .unwrap();
+        let h2 = hex_to_h256("0xe69fc1890a1b2742b5c2834d031e34ba55ef3820d463a8d0a674bb5dd9a3b74b")
+            .unwrap();
 
-        let tx = Transaction {
+        let tx1 = Transaction {
             hash: h1,
             nonce: one_u256,
             block_hash: None,
@@ -295,7 +381,21 @@ mod tests {
             input: Bytes(Vec::new()),
         };
 
-        let tr = TransactionReceipt {
+        let tx2 = Transaction {
+            hash: h2,
+            nonce: one_u256,
+            block_hash: None,
+            block_number: Some(U256::from_dec_str("10").unwrap()),
+            transaction_index: Some(one_u128),
+            from: a1,
+            to: None,
+            value: one_u256,
+            gas_price: one_u256,
+            gas: one_u256,
+            input: Bytes(Vec::new()),
+        };
+
+        let tr1 = TransactionReceipt {
             block_hash: None,
             block_number: Some(U256::from_dec_str("10").unwrap()),
             transaction_index: one_u128,
@@ -307,19 +407,40 @@ mod tests {
             logs: Vec::new(),
         };
 
-        assert_eq!(Ok(()), appdb.push_tx(&tx, &tr));
+        assert_eq!(Ok(0), appdb.count_addr_tx_links(&a1));
+        assert_eq!(Ok(0), appdb.count_addr_tx_links(&a2));
+        assert_eq!(Ok(0), appdb.count_addr_tx_links(&a3));
 
-        let mut it_a1 = appdb.iter_addr_txs(&a1);
+        assert_eq!(Ok(()), appdb.push_tx(&tx1, Some(&tr1)));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a1));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a2));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a3));
+
+        let mut it_a1 = appdb.iter_addr_tx_links(&a1);
+
         assert_eq!(Some(h1), it_a1.next());
         assert_eq!(None, it_a1.next());
 
-        let mut it_a2 = appdb.iter_addr_txs(&a2);
+        let mut it_a2 = appdb.iter_addr_tx_links(&a2);
         assert_eq!(Some(h1), it_a2.next());
         assert_eq!(None, it_a2.next());
 
-        let mut it_a3 = appdb.iter_addr_txs(&a3);
+        let mut it_a3 = appdb.iter_addr_tx_links(&a3);
         assert_eq!(Some(h1), it_a3.next());
         assert_eq!(None, it_a3.next());
+
+        // add again, should be unchanged
+        assert_eq!(Ok(()), appdb.push_tx(&tx1, Some(&tr1)));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a1));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a2));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a3));
+
+        // add second transaction
+        assert_eq!(Ok(()), appdb.push_tx(&tx2, None));
+        assert_eq!(Ok(2), appdb.count_addr_tx_links(&a1));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a2));
+        assert_eq!(Ok(1), appdb.count_addr_tx_links(&a3));
+
     }
 
     #[test]
@@ -331,4 +452,16 @@ mod tests {
         assert_eq!(Ok(()), appdb.set_last_block(0xaabbccdd11223344));
         assert_eq!(Ok(Some(0xaabbccdd11223344)), appdb.get_last_block());
     }
+
+    #[test]
+    fn test_inc() {
+        let appdb = init();
+        let key = vec![1];
+        assert_eq!(Ok(None), appdb.get_u64(&key));
+        assert_eq!(Ok(()), appdb.inc_u64(&key));
+        assert_eq!(Ok(Some(1)), appdb.get_u64(&key));
+        assert_eq!(Ok(()), appdb.inc_u64(&key));
+        assert_eq!(Ok(Some(2)), appdb.get_u64(&key));
+    }
+
 }

@@ -1,5 +1,5 @@
 [package]
-name = "rustalleda"
+name = "tesseracts"
 version = "0.1.0"
 authors = ["Adrià Massanet <adria@codecontext.io>"]
 
@@ -21,3 +21,4 @@ rouille = "3.0.0"
 ethabi = "6.1.0"
 reqwest = "0.9.5"
 tiny-keccak = "1.4"
+chrono = "0.4.6"

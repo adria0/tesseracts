@@ -2,11 +2,11 @@ sudo: required
 services:
   - docker
 before_install:
-  - docker build -t adriamb/rustalleda .
+  - docker build -t adriamb/tesseracts .
 script:
-  - docker images adriamb/rustalleda
+  - docker images adriamb/tesseracts
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push adriamb/rustalleda;
+    docker push adriamb/tesseracts;
     fi
