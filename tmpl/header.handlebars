@@ -4,6 +4,14 @@
     integrity="sha256-2YQRJMXD7pIAPHiXr0s+vlRWA7GYJEK0ARns7k2sbHY="
     crossorigin="anonymous"
 />
+<script
+    src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
+    crossorigin="anonymous"></script>
+
+<link rel="stylesheet"
+    href="https://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css"
+/>
 <style>
 a, a:active, a:focus {
     color: #3498db;
@@ -34,9 +42,73 @@ h6 {
 }
 textarea {
     height: 200px;
-}   
+}
+@import url();
+.search {
+  width: 100%;
+  position: relative;
+}
+.search:before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  font-family: 'FontAwesome';
+  content: '\f002';
+  background: #8FC357;
+  text-align: center;
+  color: #fff;
+  border-radius: 5px;
+  -webkit-font-smoothing: subpixel-antialiased;
+  font-smooth: always;
+}
+
+.searchTerm {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 100%;
+  border: 5px solid #8FC357;
+  padding: 5px;
+  height: 40px;
+  border-radius: 5px;
+  outline: none;
+}
+
+.searchButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  cursor: pointer;
+}
+
 </style>
 <body>
 <div class="container">
-<section class="header">
-<h2 class="title"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Rust_programming_language_black_logo.svg/240px-Rust_programming_language_black_logo.svg.png" height="50" width="50">&nbsp;Rustalleda</h2>
+
+<div class="row">
+  <div class="one-third column">
+    <h2 class="title"><a href="/"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Rust_programming_language_black_logo.svg/240px-Rust_programming_language_black_logo.svg.png" height="50" width="50"></a>&nbsp;Rustalleda</h2>
+  </div>
+  <div class="two-thirds column">
+    <div class="search">
+    <input class="searchTerm" placeholder="Search by Address / Txhash / Block ..." /><input class="searchButton" type="button" />
+    </div>    
+  </div>
+</div>
+
+<script>
+ $( '.searchTerm' ).bind('keypress', function(e){
+   if ( e.keyCode == 13 ) {
+      window.location.href = "/"+$('.searchTerm').val()
+   }
+ });
+$('.searchButton').on('click',function(){
+    window.location.href = "/"+$('.searchTerm').val()
+});    
+</script>
