@@ -90,7 +90,6 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
             "to"                  : tx.to.html(),
             "value"               : Ether(tx.value).html().text,
             "block"               : block,
-            "timestamp"           : Timestamp(receipt.timestamp).html.text,
             "gas"                 : tx.gas.low_u64(),
             "gas_price"           : GWei(tx.gas_price).html().text,
             "cumulative_gas_used" : cumulative_gas_used,
