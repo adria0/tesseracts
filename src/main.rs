@@ -35,7 +35,8 @@ use std::env;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
-use rouille::Response;
+use rouille::{Request,Response};
+
 
 // it turns out that is not possible to put an Arc inside a rocket::State,
 //  rocket internally crashes when unreferencing, so it can be solved by
@@ -72,10 +73,10 @@ fn main() {
     rouille::start_server(&shared_ge.0.cfg.bind.clone(), move |request| {
         router!(request,
             (GET)  (/) => {
-                explorer::get_home(&shared_ge.0)
+                explorer::get_home(&request,&shared_ge.0)
             },
             (GET)  (/{id: String}) => {
-                explorer::get_object(&shared_ge.0,&id)
+                explorer::get_object(&request,&shared_ge.0,&id)
             },
             (POST) (/{id: String}/contract) => {
                 let data = try_or_400!(post_input!(request, {
@@ -84,7 +85,7 @@ fn main() {
                     contract_optimized: bool,
                     contract_name: String,
                 }));
-                explorer::post_contract(&shared_ge.0, &id,
+                explorer::post_contract(&request, &shared_ge.0, &id,
                     &data.contract_source, &data.contract_compiler,
                     data.contract_optimized, &data.contract_name
                 )

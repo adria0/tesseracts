@@ -13,6 +13,7 @@ use super::types::{hex_to_addr,hex_to_h256};
 use super::contract;
 use super::db;
 use Response;
+use Request;
 
 #[derive(Serialize)]
 pub enum Id {
@@ -45,18 +46,23 @@ pub fn error_page(innerhtml: &str) -> String {
     html
 }
 
-pub fn get_home(ge: &GlobalState) -> Response {
+pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
     let wc = ge.new_web3client();
-    let reader = BlockchainReader::new(&wc,&ge.db);
-    Response::html(
-        match home::html(&reader,&ge.hb) {
-            Ok(html) => html,
-            Err(err) => error_page(format!("Error: {:?}", err).as_str())
-        }
-    )
+    let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>();
+    if let Ok(page_no) = page_no {
+        let reader = BlockchainReader::new(&wc,&ge.db);
+        Response::html(
+            match home::html(&reader,&ge.hb,page_no) {
+                Ok(html) => html,
+                Err(err) => error_page(format!("Error: {:?}", err).as_str())
+            }
+        )
+    } else {
+        Response::html(error_page("invalid parameter"))
+    }
 }
 
-pub fn get_object(ge: &GlobalState, id: &str) -> Response {
+pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
     let wc = ge.new_web3client();
     let reader = BlockchainReader::new(&wc,&ge.db);
     Response::html(
@@ -77,6 +83,7 @@ pub fn get_object(ge: &GlobalState, id: &str) -> Response {
 }
 
 pub fn post_contract(
+    request: &Request,
     ge: &GlobalState,
     id: &str,
     contract_source: &str,

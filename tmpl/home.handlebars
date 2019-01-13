@@ -1,10 +1,21 @@
 {{ > header.handlebars }}
 
+<h6 class="title">
+Blocks
+{{#if has_prev_page}}
+<a href="/?p={{prev_page}}"><i class="fa fa-chevron-circle-left" aria-hidden="true"></i></a>
+{{/if}}
+{{#if has_next_page}}
+<a href="/?p={{next_page}}"><i class="fa fa-chevron-circle-right" aria-hidden="true"></i></a>
+{{/if}}
+</h6>
 <table>
     <thead>
         <th>Block</th>
         <th>Transactions</th>
         <th>Timedate</th>
+        <th>Gas used</th>
+        <th>Gas limit</th>
     </thead>
     <tbody>
         {{#each blocks}}
@@ -12,6 +23,8 @@
             <td><a href={{block.link}}>{{block.text}}</td>
             <td>{{tx_count}}</td>
             <td>{{timestamp}}</td>
+            <td>{{gas_used}}</td>
+            <td>{{gas_limit}}</td>
         </tr>
         {{/each}}
     </tbody>
