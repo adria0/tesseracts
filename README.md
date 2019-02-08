@@ -13,7 +13,10 @@ This is an experimantal block explorer written in rust. At this moment it comes 
 - [X] Embeeded templates (does not need external files)
 - [X] Upload contracts and parse calls and logs
 - [X] Block & Tx pagination
+- [X] Command line parameters with better debug 
+- [X] Internal transactions
 - [ ] Parse clique block headers
+- [ ] Named accounts
 - [ ] Parallel download recipts
 - [ ] Copy the database via DevP2P instead Web3
 - [ ] See personal ERC20 tokens status

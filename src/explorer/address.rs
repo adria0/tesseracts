@@ -6,12 +6,12 @@ use super::error::Error;
 use super::html::*;
 
 use super::super::state;
-use super::super::db;
+use super::super::db::AppDB;
 use super::super::contract;
 use super::paginate;
 
 pub fn html(
-    db : &db::AppDB, 
+    db : &AppDB, 
     cfg : &state::Config,
     reader: &BlockchainReader,
     hb: &Handlebars,
@@ -32,7 +32,7 @@ pub fn html(
     let pg = paginate::paginate(limit,20,page_no);
     if pg.from <= pg.to {
         let it = reader.db.iter_addr_tx_links(&addr).skip(pg.from as usize);
-        for txhash in it.take((pg.to-pg.from) as usize) {
+        for (txhash,_,_) in it.take((pg.to-pg.from) as usize) {
             if let Some(txrc) = reader.tx(txhash)? {
                 txs.push(tx_short_json(&txrc.0));
             }

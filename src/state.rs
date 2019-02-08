@@ -43,7 +43,7 @@ impl Config {
         Ok(toml::from_str(&contents)?)
     }
     pub fn read_default() -> Result<Self, Error> {
-        Config::read("rchain.toml")
+        Config::read("tesseracts.toml")
     }
 }
 
@@ -60,9 +60,10 @@ pub struct Web3Client {
 }
 
 impl GlobalState {
-    pub fn new(cfg: Config) -> Self {
-        let mut hb = Handlebars::new();
 
+    pub fn new(cfg: Config) -> Self {
+        
+        let mut hb = Handlebars::new();
         // process assets
         for asset in Asset::iter() {
             let file = asset.into_owned();

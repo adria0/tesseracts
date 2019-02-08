@@ -133,10 +133,12 @@ fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<(),Error> {
 
     // compiled code includes the swarm hash (32 bytes) + 00 29
     if code.len() != binruntime.len() || code.len() < 34 {
+        warn!("blockchain {}",code.to_hex::<String>());
+        warn!("compiled   {}",binruntime.to_hex::<String>());
         Err(Error::ContractInvalid)
     } else if code[0..code.len()-34] != binruntime[0..code.len()-34] {
-        println!("blockchain {}",code.to_hex::<String>());
-        println!("compiled   {}",binruntime.to_hex::<String>());
+        warn!("blockchain {}",code.to_hex::<String>());
+        warn!("compiled   {}",binruntime.to_hex::<String>());
         Err(Error::CodeDoesNotMatch)
     } else {
         Ok(())

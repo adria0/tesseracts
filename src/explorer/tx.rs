@@ -80,6 +80,12 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
             |b| BlockId::Number(BlockNumber::Number(b.low_u64())).html(),
         );
         
+        // internal transactions
+        let itxs : Vec<_>= reader.db.iter_itxs(&txid)
+            .map(|(_,itx)| itx_short_json(&itx))
+            .collect();
+
+        // render page
         Ok(hb.render(
             "tx.handlebars",
             &json!({
@@ -97,6 +103,7 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
             "status"              : status,
             "input"               : input,
             "logs"                : logs,
+            "itxs"                : itxs,
             }),
         )?)
     } else {

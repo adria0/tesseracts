@@ -2,6 +2,7 @@ use web3::types::{Address, BlockId, BlockNumber, Bytes, Transaction, Transaction
 use rustc_hex::ToHex;
 use serde_derive::Serialize;
 use chrono::prelude::*;
+use super::super::types::InternalTx;
 
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
@@ -148,5 +149,19 @@ pub fn tx_short_json(tx: &Transaction) -> serde_json::Value {
         "to"            : if let Some(to) = tx.to { to.html() } else { TextWithLink::blank()},
         "shortdata"     : shortdata,
         "value"         : Ether(tx.value).html()
+    })
+}
+
+pub fn itx_short_json(itx: &InternalTx) -> serde_json::Value {
+    let shortdata = itx
+        .input.to_hex::<String>()
+        .chars().take(8).collect::<String>();
+
+    json!({
+        "from"          : itx.from.html(),
+        "tonewcontract" : itx.to.is_none(),
+        "to"            : if let Some(to) = itx.to { itx.to.html() } else { TextWithLink::blank()},
+        "shortdata"     : shortdata,
+        "value"         : Ether(itx.value).html()
     })
 }
