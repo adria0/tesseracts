@@ -1,15 +1,17 @@
 use std::process::Command;
 use std::collections::HashMap;
 use std::io;
-use state::Config;
+use std::io::prelude::*;
 use std::fs;
 use std::fs::File;
+
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-use std::io::prelude::*;
-use rustc_hex::{FromHex,ToHex};
-use keccak_hash;
 
+use bootstrap::Config;
+use rustc_hex::{FromHex,ToHex};
+
+use keccak_hash;
 use ethabi;
 use ethabi::param_type::{Writer, ParamType};
 

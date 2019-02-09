@@ -38,6 +38,7 @@ mod state;
 mod types;
 mod contract;
 mod dbgapi;
+mod bootstrap;
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -83,7 +84,7 @@ fn main() {
         .init()
         .unwrap();
 
-    let cfg = state::Config::read(&opt.cfg)
+    let cfg = bootstrap::Config::read(&opt.cfg)
         .expect("cannot read config");
 
     let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
