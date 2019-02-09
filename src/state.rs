@@ -14,6 +14,7 @@ use handlebars::Handlebars;
 pub struct Config {
     pub db_path: String,
     pub web3_url: String,
+    pub web3_client: String,
     pub scan: bool,
     pub scan_start_block: Option<u64>,
     pub bind: String,
@@ -35,6 +36,8 @@ impl From<toml::de::Error> for Error {
         Error::Toml(err)
     }
 }
+
+const GETH_CLIQUE : &'static str = "geth_clique";
 
 impl Config {
     pub fn read(path: &str) -> Result<Self, Error> {
@@ -63,6 +66,10 @@ impl GlobalState {
 
     pub fn new(cfg: Config) -> Self {
         
+        if cfg.web3_client != GETH_CLIQUE {
+            panic!("only {} allowed in web3_client",GETH_CLIQUE);
+        }
+
         let mut hb = Handlebars::new();
         // process assets
         for asset in Asset::iter() {

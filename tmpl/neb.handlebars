@@ -16,6 +16,7 @@ Non-empty-blocks
 <table>
     <thead>
         <th>Block</th>
+        <th>Author</th>
         <th>Transactions</th>
         <th>Timedate</th>
         <th>Gas used</th>
@@ -25,6 +26,7 @@ Non-empty-blocks
         {{#each blocks}}
         <tr>
             <td><a href={{block.link}}>{{block.text}}</td>
+            <td><a href={{author.link}}>{{author.text}}</td>
             <td>{{tx_count}}</td>
             <td>{{timestamp}}</td>
             <td>{{gas_used}}</td>

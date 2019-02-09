@@ -21,7 +21,7 @@ pub fn html(db : &db::AppDB, reader: &BlockchainReader, hb: &Handlebars, txid: H
         if let Some(receipt) = receipt {
 
             cumulative_gas_used = format!("{}", receipt.cumulative_gas_used.low_u64());
-            gas_used = format!("{}", receipt.gas_used.low_u64());
+            gas_used = format!("{}", receipt.gas_used.unwrap().low_u64());
 
             contract_address = receipt
                 .contract_address

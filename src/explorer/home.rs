@@ -2,6 +2,7 @@ use handlebars::Handlebars;
 use web3::types::{BlockNumber,BlockId};
 use reader::BlockchainReader;
 
+use super::clique::parse_clique_signer;
 use super::error::Error;
 use super::html::{Timestamp,HtmlRender};
 use super::paginate;
@@ -20,9 +21,11 @@ pub fn html(
         let block_no = last_blockno - n;
         let block_id = BlockId::Number(BlockNumber::Number(block_no));
         if let Some(block) = reader.block(block_no)? {
+            let author = parse_clique_signer(&block).unwrap();
             blocks.push(json!({
                 "block"     : block_id.html(),
                 "tx_count"  : block.transactions.len(),
+                "author"    : author.html(),
                 "timestamp" : Timestamp(block.timestamp).html().text,
                 "gas_used"   : block.gas_used.low_u64(), 
                 "gas_limit"  : block.gas_limit.low_u64()

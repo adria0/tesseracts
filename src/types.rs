@@ -56,5 +56,7 @@ where
         uncles: block.uncles,
         transactions: block.transactions.into_iter().map(f).collect(),
         size: block.size,
+        nonce : block.nonce,
+        mix_hash : block.mix_hash,
     }
 }

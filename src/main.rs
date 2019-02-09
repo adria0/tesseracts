@@ -28,6 +28,7 @@ extern crate reqwest;
 extern crate rlp;
 extern crate chrono;
 extern crate keccak_hash;
+extern crate ethkey;
 
 mod db;
 mod reader;

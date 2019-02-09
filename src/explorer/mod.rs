@@ -8,6 +8,7 @@ mod html;
 mod tx;
 mod paginate;
 mod neb;
+mod clique;
 
 use super::state::GlobalState;
 use super::reader::BlockchainReader;

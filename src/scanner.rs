@@ -37,7 +37,7 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<(), Error> {
             if cfg_start_block > next_block {
                 next_block = cfg_start_block;
             }
-        }    
+        }           
         let until_block = wc.web3.eth().block_number().wait()?.low_u64();
         while next_block <= until_block && !gs.stop_signal.load(Ordering::SeqCst) {
             let block = wc

@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Adrià Massanet <adria@codecontext.io>"]
 
 [dependencies]
-web3 = "0.5.1"
+web3 = { git = "https://github.com/tomusdrw/rust-web3" }
 rustc-hex = "2.0.1"
 handlebars = "1.1.0"
 rust-embed = "4.2.0"
@@ -26,3 +26,5 @@ log = "0.4.6"
 stderrlog = "0.4.1"
 structopt = "0.2.14"
 rlp = "0.3.0"
+ethkey = { git = "https://github.com/paritytech/parity.git" }
+eth-secp256k1 = { git = "https://github.com/paritytech/rust-secp256k1" }
