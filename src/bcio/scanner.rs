@@ -1,35 +1,12 @@
-use db;
 use state::{GlobalState, Web3Client};
 use std::sync::atomic::Ordering;
 use std::{thread, time};
 use types::into_block;
 use web3::futures::Future;
 use web3::types::{BlockId, BlockNumber, Transaction};
-use dbgapi;
+use clique;
 
-#[derive(Debug)]
-pub enum Error {
-    Uninitialized,
-    Web3(web3::Error),
-    DB(db::Error),
-    FromHex(rustc_hex::FromHexError),
-}
-
-impl From<web3::Error> for Error {
-    fn from(err: web3::Error) -> Self {
-        Error::Web3(err)
-    }
-}
-impl From<db::Error> for Error {
-    fn from(err: db::Error) -> Self {
-        Error::DB(err)
-    }
-}
-impl From<rustc_hex::FromHexError> for Error {
-    fn from(err: rustc_hex::FromHexError) -> Self {
-        Error::FromHex(err)
-    }
-}
+use super::error::Error;
 
 fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<(), Error> {
     if let Some(mut next_block) = gs.db.get_last_block()? {
@@ -57,7 +34,7 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<(), Error> {
                 let re = wc.web3.eth().transaction_receipt(tx.hash).wait()?.unwrap();
 
                 // read internal transactions
-                let dbg : dbgapi::Dbg<_> = wc.web3.api();
+                let dbg : clique::Debug<_> = wc.web3.api();
                 let itxs = dbg.internal_txs(&tx).wait()?.parse()?;
                 
                 // write them all

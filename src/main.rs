@@ -31,14 +31,12 @@ extern crate keccak_hash;
 extern crate ethkey;
 
 mod db;
-mod reader;
 mod explorer;
-mod scanner;
 mod state;
 mod types;
-mod contract;
-mod dbgapi;
 mod bootstrap;
+mod clique;
+mod bcio;
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -92,7 +90,7 @@ fn main() {
 
     if shared_ge.0.cfg.scan {
         let shared_ge_scan = shared_ge.0.clone();
-        thread::spawn(move || scanner::scan(&shared_ge_scan));
+        thread::spawn(move || bcio::scan(&shared_ge_scan));
     }
 
     let shared_ge_controlc = shared_ge.0.clone();

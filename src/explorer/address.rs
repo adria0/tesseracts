@@ -1,13 +1,13 @@
 use handlebars::Handlebars;
 use web3::types::Address;
-use reader::BlockchainReader;
 
 use super::error::Error;
 use super::html::*;
 
+use super::super::bcio::BlockchainReader;
 use super::super::bootstrap::Config;
 use super::super::db::AppDB;
-use super::super::contract;
+use super::contract;
 use super::paginate;
 
 pub fn html(

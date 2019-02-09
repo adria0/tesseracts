@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::atomic::AtomicBool;
 
 #[derive(Debug, Deserialize)]
 pub struct NamedAddress {
@@ -46,9 +45,19 @@ impl Config {
         let cfg : Config = toml::from_str(&contents)?;
 
         if cfg.web3_client != GETH_CLIQUE {
-            Err(Error::InvalidOption(format!("only {} allowed in web3_client",GETH_CLIQUE)))
+            return Err(Error::InvalidOption(format!("only {} allowed in web3_client",GETH_CLIQUE)))
         } else {
             Ok(cfg)
+        }
+    }
+    pub fn find_named_addr(&self, addr : &str) -> String {
+        if let Some(na) = &self.named_address {
+            na.into_iter()
+                .find(|x| x.address == addr)
+                .map(|x| x.name.clone())
+                .unwrap_or(addr.to_string())
+        } else {
+            addr.to_string()
         }
     }
 }

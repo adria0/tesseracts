@@ -15,7 +15,7 @@ This is an experimantal block explorer written in rust. At this moment it comes 
 - [X] Block & Tx pagination
 - [X] Command line parameters with better debug 
 - [X] Internal transactions
-- [ ] Parse clique block headers
+- [X] Parse clique block headers
 - [ ] Named accounts
 - [ ] Parallel download recipts
 - [ ] Copy the database via DevP2P instead Web3

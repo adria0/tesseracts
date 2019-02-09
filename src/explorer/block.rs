@@ -1,8 +1,9 @@
 use handlebars::Handlebars;
-use reader::BlockchainReader;
 use super::error::Error;
 use super::html::*;
-use super::clique::parse_clique_signer;
+
+use super::clique::parse_clique_header;
+use super::super::bcio::BlockchainReader;
 
 pub fn html(
     reader: &BlockchainReader,
@@ -14,7 +15,7 @@ pub fn html(
         for tx in &block.transactions {
             txs.push(tx_short_json(&tx));
         }
-        let author = parse_clique_signer(&block);
+        let author = parse_clique_header(&block);
         Ok(hb.render(
             "block.handlebars",
             &json!({

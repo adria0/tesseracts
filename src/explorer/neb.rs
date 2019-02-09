@@ -1,8 +1,8 @@
 use handlebars::Handlebars;
 use web3::types::{BlockNumber,BlockId};
-use reader::BlockchainReader;
 
-use super::clique::parse_clique_signer;
+use super::super::bcio::BlockchainReader;
+use super::clique::parse_clique_header;
 use super::error::Error;
 use super::html::{Timestamp,HtmlRender};
 use super::paginate;
@@ -13,6 +13,7 @@ pub fn html(
     reader: &BlockchainReader,
     hb: &Handlebars,
     page_no : u64,
+
 ) -> Result<String, Error> {
 
     let mut blocks = Vec::new();
@@ -24,13 +25,13 @@ pub fn html(
         count_non_empty_blocks
     };
     let pg = paginate::paginate(limit,20,page_no);
-        println!("{:?}",pg);
+
     if pg.from <= pg.to {
         let it = reader.db.iter_non_empty_blocks()?.skip(pg.from as usize);
         for n in it.take((pg.to-pg.from) as usize) {
             let block_id = BlockId::Number(BlockNumber::Number(n));
             if let Some(block) = reader.block(n)? {
-                let author = parse_clique_signer(&block).unwrap();
+                let author = parse_clique_header(&block).unwrap();
                 blocks.push(json!({
                     "block"     : block_id.html(),
                     "author"     : author.html(),

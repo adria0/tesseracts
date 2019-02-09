@@ -1,4 +1,3 @@
-use db;
 use db::AppDB;
 use state::*;
 use std::collections::HashMap;
@@ -9,22 +8,7 @@ use web3::types::{
     H256, U256,
 };
 
-#[derive(Debug)]
-pub enum Error {
-    Web3(web3::Error),
-    Db(db::Error),
-}
-
-impl From<web3::Error> for Error {
-    fn from(err: web3::Error) -> Self {
-        Error::Web3(err)
-    }
-}
-impl From<db::Error> for Error {
-    fn from(err: db::Error) -> Self {
-        Error::Db(err)
-    }
-}
+use super::error::Error;
 
 pub struct BlockchainReader<'a> {
     wc: &'a Web3Client,

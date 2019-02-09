@@ -30,8 +30,6 @@ pub fn hex_to_u256(s: &str) -> Result<U256, FromHexError> {
     hex_to_vec(s).map(|v| U256::from_big_endian(&v)) // TODO: check
 }
 
-
-
 pub fn into_block<T1, T2, F>(block: Block<T1>, f: F) -> Block<T2>
 where
     F: FnMut(T1) -> T2,

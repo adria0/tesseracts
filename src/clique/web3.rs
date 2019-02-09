@@ -5,18 +5,18 @@ use web3::Transport;
 use rustc_hex::{FromHexError};
 use types::*;
 
-/// `Dbg` namespace
+/// `Debug` namespace
 #[derive(Debug, Clone)]
-pub struct Dbg<T> {
+pub struct Debug<T> {
     transport: T,
 }
 
-impl<T: Transport> Namespace<T> for Dbg<T> {
+impl<T: Transport> Namespace<T> for Debug<T> {
     fn new(transport: T) -> Self
     where
         Self: Sized,
     {
-        Dbg { transport }
+        Debug { transport }
     }
 
     fn transport(&self) -> &T {
@@ -72,7 +72,7 @@ impl DbgInternalTxs {
     }
 }
 
-impl<T: Transport> Dbg<T> {
+impl<T: Transport> Debug<T> {
     pub fn internal_txs(&self, tx: &Transaction) -> CallFuture<DbgInternalTxs, T::Out> {
         CallFuture::new(
             self.transport.execute  (

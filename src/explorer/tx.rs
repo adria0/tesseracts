@@ -1,9 +1,9 @@
 use handlebars::Handlebars;
 use web3::types::{BlockId, BlockNumber,H256};
-use reader::BlockchainReader;
 
+use super::super::bcio::BlockchainReader;
 use super::super::db;
-use super::super::contract;
+use super::contract;
 
 use super::error::Error;
 use super::html::*;

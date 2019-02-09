@@ -19,7 +19,7 @@ use web3::types::{H256, Address};
     */
 
 
-pub fn parse_clique_signer<T>(block : &web3::types::Block<T>) -> Option<Address> {
+pub fn parse_clique_header<T>(block : &web3::types::Block<T>) -> Option<Address> {
     const EXTRA_SEAL : usize = 65;
     let vanity = &block.extra_data.0[..block.extra_data.0.len()-EXTRA_SEAL];
     let mut stream = RlpStream::new_list(15);

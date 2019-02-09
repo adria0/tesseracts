@@ -2,8 +2,8 @@ use reqwest;
 use ethabi;
 
 use super::super::db;
-use super::super::reader;
-use super::super::contract;
+use super::super::bcio;
+use super::contract;
 
 #[derive(Debug)]
 pub enum Error {
@@ -11,7 +11,7 @@ pub enum Error {
     NotFound,
     Handlebars(handlebars::RenderError),
     Reqwest(reqwest::Error),
-    Reader(reader::Error),
+    BcIo(bcio::Error),
     Io(std::io::Error),
     Db(db::Error),
     EthAbi(ethabi::Error),
@@ -23,9 +23,9 @@ impl From<handlebars::RenderError> for Error {
         Error::Handlebars(err)
     }
 }
-impl From<reader::Error> for Error {
-    fn from(err: reader::Error) -> Self {
-        Error::Reader(err)
+impl From<bcio::Error> for Error {
+    fn from(err: bcio::Error) -> Self {
+        Error::BcIo(err)
     }
 }
 impl From<reqwest::Error> for Error {

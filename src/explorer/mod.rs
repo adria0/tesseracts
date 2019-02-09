@@ -8,13 +8,14 @@ mod html;
 mod tx;
 mod paginate;
 mod neb;
-mod clique;
+mod contract;
 
 use super::state::GlobalState;
-use super::reader::BlockchainReader;
+use super::bcio::BlockchainReader;
 use super::types::{hex_to_addr,hex_to_h256};
-use super::contract;
 use super::db;
+use super::clique;
+
 use Response;
 use Request;
 
