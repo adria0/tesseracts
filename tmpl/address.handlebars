@@ -26,6 +26,7 @@
     <thead>
         <th>Block</th>
         <th>Tx</th>
+        <th>Type</th>
         <th>From</th>
         <th>To</th>
         <th>Value</th>
@@ -36,6 +37,7 @@
         <tr>
             <td><a href={{blockno.link}}>{{blockno.text}}</td>
             <td><a href={{tx.link}}>{{tx.text}}</td>
+            <td>{{type}}</td>
             <td><a href={{from.link}}>{{from.text}}</a></td>
             <td>{{ #if tonewcontract }}
                 New contract

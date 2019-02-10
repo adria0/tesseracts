@@ -34,9 +34,13 @@ pub fn html(
     let pg = paginate::paginate(limit,20,page_no);
     if pg.from <= pg.to {
         let it = reader.db.iter_addr_tx_links(&addr).skip(pg.from as usize);
-        for (txhash,_,_) in it.take((pg.to-pg.from) as usize) {
-            if let Some(txrc) = reader.tx(txhash)? {
-                txs.push(hr.tx(&txrc.0));
+        for (txhash,itx_no) in it.take((pg.to-pg.from) as usize) {
+            let tx = reader.tx(txhash)?.unwrap().0;
+            if itx_no == 0 {
+                txs.push(hr.tx(&tx));
+            } else {
+                let itx = db.get_itx(&txhash,itx_no)?.unwrap();
+                txs.push(hr.tx_itx(&tx,&itx));
             }
         }
     }

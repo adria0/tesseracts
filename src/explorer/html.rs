@@ -111,6 +111,7 @@ impl<'a> HtmlRender<'a> {
             .chars().take(8).collect::<String>();
 
         json!({
+            "type"          : "EXT",
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid_short(&tx.hash),
             "from"          : self.addr(&tx.from),
@@ -118,6 +119,24 @@ impl<'a> HtmlRender<'a> {
             "to"            : self.addr_or(&tx.to,""),
             "shortdata"     : shortdata,
             "value"         : self.ether(&tx.value)
+        })
+    }
+
+    pub fn tx_itx(&self,tx: &Transaction, itx: &InternalTx) -> serde_json::Value {
+        
+        let shortdata = itx
+            .input.to_hex::<String>()
+            .chars().take(8).collect::<String>();
+
+        json!({
+            "type"          : "int",
+            "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
+            "tx"            : self.txid_short(&tx.hash),
+            "from"          : self.addr(&itx.from),
+            "tonewcontract" : itx.to.is_none(),
+            "to"            : self.addr_or(&itx.to,""),
+            "shortdata"     : shortdata,
+            "value"         : self.ether(&itx.value)
         })
     }
 
