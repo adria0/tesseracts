@@ -1,10 +1,8 @@
-use web3::types::{BlockNumber,BlockId};
-
-use super::clique::parse_clique_header;
 use super::error::Error;
 use super::html::HtmlRender;
 use super::paginate;
 
+use super::super::geth::parse_clique_header;
 use super::super::bcio::BlockchainReader;
 use super::super::state::GlobalState;
 

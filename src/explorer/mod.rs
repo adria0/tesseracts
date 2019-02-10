@@ -14,7 +14,6 @@ use super::state::GlobalState;
 use super::bcio::BlockchainReader;
 use super::types::{hex_to_addr,hex_to_h256};
 use super::db;
-use super::clique;
 
 use Response;
 use Request;
@@ -51,7 +50,6 @@ pub fn error_page(innerhtml: &str) -> String {
 }
 
 pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
-    let wc = ge.new_web3client();
     let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>();
     if let Ok(page_no) = page_no {
         Response::html(

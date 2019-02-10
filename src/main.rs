@@ -36,7 +36,7 @@ mod explorer;
 mod state;
 mod types;
 mod bootstrap;
-mod clique;
+mod geth;
 mod bcio;
 
 use std::sync::atomic::Ordering;

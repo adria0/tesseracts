@@ -1,7 +1,7 @@
 use db::AppDB;
 
 use std::collections::HashMap;
-use web3::types::{Address, H256, Transaction, U256};
+use web3::types::{Address};
 use std::sync::atomic::AtomicBool;
 use bootstrap::{Config,load_handlebars_templates};
 use handlebars::Handlebars;

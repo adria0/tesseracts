@@ -3,7 +3,7 @@ use super::html::*;
 
 use super::super::bcio::BlockchainReader;
 use super::super::state::GlobalState;
-use super::clique::parse_clique_header;
+use super::super::geth::parse_clique_header;
 
 pub fn html(
     ge: &GlobalState,

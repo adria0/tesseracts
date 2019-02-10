@@ -4,7 +4,7 @@ use std::{thread, time};
 use types::into_block;
 use web3::futures::Future;
 use web3::types::{BlockId, BlockNumber, Transaction};
-use clique;
+use geth;
 
 use super::error::Result;
 
@@ -35,7 +35,7 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<()>{
             let re = wc.web3.eth().transaction_receipt(tx.hash).wait()?.unwrap();
 
             // read internal transactions
-            let dbg : clique::Debug<_> = wc.web3.api();
+            let dbg : geth::Debug<_> = wc.web3.api();
             let itxs = dbg.internal_txs(&tx).wait()?.parse()?;
             
             // write them all
