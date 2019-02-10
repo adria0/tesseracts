@@ -48,8 +48,10 @@ bind         =
 
 # multiple named_address entries can be added to name accouts
 [[named_address]]
-name =    # e.g. "me"
-address = # e.g. "0x5d03df716ebf0e11bfb3e178fb39ed672c59ee61"
+# e.g. "me"
+name =    
+# e.g. "0x5d03df716ebf0e11bfb3e178fb39ed672c59ee61"
+address = 
 ```
 
 run the application with (if your config file is named `cfg.toml`)
