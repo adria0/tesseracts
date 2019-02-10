@@ -18,10 +18,12 @@ pub fn hex_to_vec(s: &str) -> Result<Vec<u8>, FromHexError> {
         .from_hex()
 }
 
+#[allow(deprecated)]
 pub fn hex_to_addr(s: &str) -> Result<Address, FromHexError> {
     hex_to_vec(s).map(|v| Address::from_slice(&v))
 }
 
+#[allow(deprecated)]
 pub fn hex_to_h256(s: &str) -> Result<H256, FromHexError> {
     hex_to_vec(s).map(|v| H256::from_slice(&v))
 }
