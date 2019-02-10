@@ -8,7 +8,13 @@ extern crate serde_json;
 extern crate serde_derive;
 #[macro_use]
 extern crate rouille;
+#[macro_use]
+extern crate log;
+extern crate structopt;
+#[macro_use]
+extern crate error_chain;
 
+extern crate stderrlog;
 extern crate ctrlc;
 extern crate handlebars;
 extern crate rand;
@@ -20,50 +26,77 @@ extern crate toml;
 extern crate web3;
 extern crate ethabi;
 extern crate reqwest;
-extern crate tiny_keccak;
+extern crate rlp;
 extern crate chrono;
+extern crate keccak_hash;
+extern crate ethkey;
 
 mod db;
-mod reader;
 mod explorer;
-mod scanner;
 mod state;
 mod types;
-mod contract;
+mod bootstrap;
+mod clique;
+mod bcio;
 
-use std::env;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
 use rouille::{Request,Response};
-
 
 // it turns out that is not possible to put an Arc inside a rocket::State,
 //  rocket internally crashes when unreferencing, so it can be solved by
 //  wrapping it inside a one-element tuple
 pub struct SharedGlobalState(Arc<state::GlobalState>);
 
+use structopt::StructOpt;
+
+/// A StructOpt example
+#[derive(StructOpt, Debug)]
+#[structopt()]
+struct Opt {
+    /// Silence all output
+    #[structopt(short = "q", long = "quiet")]
+    quiet: bool,
+    
+    /// Verbose mode (-v, -vv, -vvv, etc)
+    #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
+    verbose: usize,
+
+    /// Timestamp (sec, ms, ns, none)
+    #[structopt(short = "t", long = "timestamp")]
+    ts: Option<stderrlog::Timestamp>,
+
+    /// Timestamp (sec, ms, ns, none)
+    #[structopt(short = "cfg", long = "cfg")]
+    cfg: String,
+}
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let cfg = if args.len() > 1 {
-        state::Config::read(args[1].as_str())
-    } else {
-        state::Config::read_default()
-    }
-    .expect("cannot read config");
+    let opt = Opt::from_args();
 
-    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
-    println!("non-empty-blocks {:?}",shared_ge.0.db.count_non_empty_blocks());
+    stderrlog::new()
+        .module(module_path!())
+        .quiet(opt.quiet)
+        .verbosity(opt.verbose)
+        .timestamp(opt.ts.unwrap_or(stderrlog::Timestamp::Off))
+        .init()
+        .unwrap();
 
+    let cfg = bootstrap::Config::read(&opt.cfg)
+        .expect("cannot read config");
+
+    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg).unwrap()));
+    debug!("non-empty-blocks {:?}",shared_ge.0.db.count_non_empty_blocks());
 
     if shared_ge.0.cfg.scan {
         let shared_ge_scan = shared_ge.0.clone();
-        thread::spawn(move || scanner::scan(&shared_ge_scan));
+        thread::spawn(move || bcio::scan(&shared_ge_scan));
     }
 
     let shared_ge_controlc = shared_ge.0.clone();
     ctrlc::set_handler(move || {
-        println!("Got Ctrl-C handler signal. Stopping...");
+        info!("Got Ctrl-C handler signal. Stopping...");
         shared_ge_controlc.stop_signal.store(true, Ordering::SeqCst);
         if !shared_ge_controlc.cfg.scan {
             std::process::exit(0);
@@ -71,7 +104,7 @@ fn main() {
     })
     .expect("Error setting Ctrl-C handler");
 
-    println!("Lisening to {}...", &shared_ge.0.cfg.bind.clone()); // TODO: remove clones
+    info!("Lisening to {}...", &shared_ge.0.cfg.bind.clone()); // TODO: remove clones
     rouille::start_server(&shared_ge.0.cfg.bind.clone(), move |request| {
         router!(request,
             (GET)  (/) => {
@@ -87,7 +120,7 @@ fn main() {
                     contract_optimized: bool,
                     contract_name: String,
                 }));
-                explorer::post_contract(&request, &shared_ge.0, &id,
+                explorer::post_contract(&shared_ge.0, &id,
                     &data.contract_source, &data.contract_compiler,
                     data.contract_optimized, &data.contract_name
                 )

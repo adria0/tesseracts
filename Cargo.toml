@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Adrià Massanet <adria@codecontext.io>"]
 
 [dependencies]
-web3 = "0.5.1"
+web3 = { git = "https://github.com/tomusdrw/rust-web3" }
 rustc-hex = "2.0.1"
 handlebars = "1.1.0"
 rust-embed = "4.2.0"
@@ -20,5 +20,11 @@ toml = "0.4.10"
 rouille = "3.0.0"
 ethabi = "6.1.0"
 reqwest = "0.9.5"
-tiny-keccak = "1.4"
+keccak-hash = "0.1.2"
 chrono = "0.4.6"
+log = "0.4.6"
+stderrlog = "0.4.1"
+structopt = "0.2.14"
+rlp = "0.3.0"
+ethkey = { git = "https://github.com/paritytech/parity.git" }
+error-chain = { version = "0.12", default-features = false }

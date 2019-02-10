@@ -1,22 +1,33 @@
 use rustc_hex::{FromHex, FromHexError};
-use web3::types::{Address, Block, H256};
+use web3::types::{Address, Block, H256,U256};
 
-pub fn hex_to_addr(s: &str) -> Result<Address, FromHexError> {
+#[derive(Debug,PartialEq,Serialize,Deserialize)]
+pub struct InternalTx {
+    pub from     : Address,
+    pub to       : Option<Address>,
+    pub contract : Option<Address>,
+    pub value    : U256,
+    pub input    : Vec<u8>,
+}
+
+pub fn hex_to_vec(s: &str) -> Result<Vec<u8>, FromHexError> {
     s.to_owned()
         .chars()
         .skip(2)
         .collect::<String>()
-        .from_hex::<Vec<u8>>()
-        .map(|v| Address::from_slice(&v))
+        .from_hex()
+}
+
+pub fn hex_to_addr(s: &str) -> Result<Address, FromHexError> {
+    hex_to_vec(s).map(|v| Address::from_slice(&v))
 }
 
 pub fn hex_to_h256(s: &str) -> Result<H256, FromHexError> {
-    s.to_owned()
-        .chars()
-        .skip(2)
-        .collect::<String>()
-        .from_hex::<Vec<u8>>()
-        .map(|v| H256::from_slice(&v))
+    hex_to_vec(s).map(|v| H256::from_slice(&v))
+}
+
+pub fn hex_to_u256(s: &str) -> Result<U256, FromHexError> {
+    hex_to_vec(s).map(|v| U256::from_big_endian(&v)) // TODO: check
 }
 
 pub fn into_block<T1, T2, F>(block: Block<T1>, f: F) -> Block<T2>
@@ -43,5 +54,7 @@ where
         uncles: block.uncles,
         transactions: block.transactions.into_iter().map(f).collect(),
         size: block.size,
+        nonce : block.nonce,
+        mix_hash : block.mix_hash,
     }
 }

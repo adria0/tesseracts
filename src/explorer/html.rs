@@ -1,17 +1,17 @@
-use web3::types::{Address, BlockId, BlockNumber, Bytes, Transaction, TransactionId, U256};
+use web3::types::{Address, H256, Transaction, U256};
 use rustc_hex::ToHex;
 use serde_derive::Serialize;
 use chrono::prelude::*;
+
+use super::super::types::InternalTx;
+use super::super::state::GlobalState;
+
+const DATETIME_FORMAT : &'static str = "%Y-%m-%d %H:%M:%S";
 
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
     static ref ETHER: U256 = U256::from_dec_str("1000000000000000000").unwrap();
 }
-
-pub struct TransactionIdShort(pub TransactionId);
-pub struct GWei(pub U256);
-pub struct Ether(pub U256);
-pub struct Timestamp(pub U256);
 
 #[derive(Serialize)]
 pub struct TextWithLink {
@@ -40,113 +40,99 @@ impl TextWithLink {
     }
 }
 
-pub trait HtmlRender {
-    fn html(&self) -> TextWithLink;
+pub struct HtmlRender<'a> {
+    ge : &'a GlobalState,
 }
 
-impl HtmlRender for Address {
-    fn html(&self) -> TextWithLink {
-        TextWithLink::new_link(format!("0x{:x}", self), format!("/0x{:x}", self))
+impl<'a> HtmlRender<'a> {
+    
+    pub fn new(ge :&'a GlobalState) -> HtmlRender<'a> {
+        return HtmlRender { ge }
     }
-}
-
-impl HtmlRender for Bytes {
-    fn html(&self) -> TextWithLink {
-        TextWithLink::new_text(
-            (self.0)
-                .as_slice()
-                .chunks(32)
-                .map(|c| c.to_hex::<String>())
-                .map(|c| format!("{},", c))
-                .collect::<String>(),
+    
+    pub fn addr(&self, addr : &Address) -> TextWithLink {
+        TextWithLink::new_link(
+            self.ge.named_address.get(addr).unwrap_or(&format!("0x{:x}", addr)).to_string(),
+            format!("/0x{:x}", addr)
         )
     }
-}
 
-impl HtmlRender for Option<Address> {
-    fn html(&self) -> TextWithLink {
-        self.map(|v| v.html())
-            .unwrap_or_else(|| TextWithLink::new_text("New contract".to_string()))
-    }
-}
-
-impl HtmlRender for TransactionId {
-    fn html(&self) -> TextWithLink {
-        match &self {
-            TransactionId::Hash(h) => {
-                TextWithLink::new_link(format!("0x{:x}", h), format!("/0x{:x}", h))
-            }
-            _ => unreachable!(),
+    pub fn addr_or(&self, optaddr : &Option<Address>, or : &str) -> TextWithLink {
+        if let Some(addr) = optaddr {
+            self.addr(&addr)
+        } else {
+             TextWithLink::new_text(or.to_string())
         }
     }
-}
 
-impl HtmlRender for TransactionIdShort {
-    fn html(&self) -> TextWithLink {
-        match &self.0 {
-            TransactionId::Hash(h) => TextWithLink::new_link(
-                format!("{:x}", h).chars().take(7).collect::<String>(),
-                format!("/0x{:x}", h),
-            ),
-            _ => unreachable!(),
-        }
+    pub fn bytes(&self, bytes : &[u8]) -> String {
+        bytes.chunks(32)
+            .map(|c| c.to_hex::<String>())
+            .map(|c| format!("{},", c))
+            .collect::<String>()
     }
-}
 
-impl HtmlRender for BlockId {
-    fn html(&self) -> TextWithLink {
-        match &self {
-            BlockId::Number(BlockNumber::Number(n)) => {
-                TextWithLink::new_link(format!("{}", n), format!("/{}", n))
-            }
-            _ => unreachable!(),
-        }
+    pub fn txid_short(&self, txid : &H256) -> TextWithLink {
+        TextWithLink::new_link(
+            format!("{:x}", txid).chars().take(9).collect::<String>(),
+            format!("/0x{:x}", txid),
+        )
     }
-}
 
-impl HtmlRender for GWei {
-    fn html(&self) -> TextWithLink {
-        TextWithLink::new_text(format!("{} GWei ({})", self.0 / *GWEI, self.0))
+    pub fn blockno(&self, no : u64) -> TextWithLink {
+        TextWithLink::new_link(format!("{}", no), format!("/{}", no))
     }
-}
 
-impl HtmlRender for Ether {
-    fn html(&self) -> TextWithLink {
-        if self.0 == U256::zero()  {
+    pub fn gwei(&self, wei : &U256) -> TextWithLink {
+        TextWithLink::new_text(format!("{} GWei ({})", wei / *GWEI, wei))
+    }
+
+    pub fn ether(&self, wei : &U256) -> TextWithLink {
+        if *wei == U256::zero()  {
             TextWithLink::new_text("0 Ξ".to_string())
         } else {
-            let ether  = self.0 / *ETHER;
-            let mut remain = self.0 % *ETHER;
+            let ether  = wei / *ETHER;
+            let mut remain = wei % *ETHER;
             while remain > U256::zero() && remain % 10 == U256::zero() {
                 remain /= 10; 
             }
             TextWithLink::new_text(format!("{}.{} Ξ", ether, remain))
         }
     }
-}
 
-impl HtmlRender for Timestamp {
-    fn html(&self) -> TextWithLink {
-        let dt = Utc.timestamp(self.0.low_u64() as i64, 0);
-        TextWithLink::new_text(dt.to_rfc2822())
+    pub fn timestamp(&self, sec1970 : &U256) -> TextWithLink {
+        let dt = Utc.timestamp(sec1970.low_u64() as i64, 0);
+        TextWithLink::new_text(format!("{}",dt.format(DATETIME_FORMAT)))
     }
-}
 
-pub fn tx_short_json(tx: &Transaction) -> serde_json::Value {
-    let shortdata = tx
-        .input.0.to_hex::<String>()
-        .chars().take(8).collect::<String>();
+    pub fn tx(&self,tx: &Transaction) -> serde_json::Value {
+        let shortdata = tx
+            .input.0.to_hex::<String>()
+            .chars().take(8).collect::<String>();
 
-    let blockid =
-        BlockId::Number(BlockNumber::Number(tx.block_number.unwrap().low_u64()));
+        json!({
+            "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
+            "tx"            : self.txid_short(&tx.hash),
+            "from"          : self.addr(&tx.from),
+            "tonewcontract" : tx.to.is_none(),
+            "to"            : self.addr_or(&tx.to,""),
+            "shortdata"     : shortdata,
+            "value"         : self.ether(&tx.value)
+        })
+    }
 
-    json!({
-        "blockno"       : blockid.html(),
-        "tx"            : TransactionIdShort(TransactionId::Hash(tx.hash)).html(),
-        "from"          : tx.from.html(),
-        "tonewcontract" : tx.to.is_none(),
-        "to"            : if let Some(to) = tx.to { to.html() } else { TextWithLink::blank()},
-        "shortdata"     : shortdata,
-        "value"         : Ether(tx.value).html()
-    })
+    pub fn itx(&self,itx: &InternalTx) -> serde_json::Value {
+        let shortdata = itx
+            .input.to_hex::<String>()
+            .chars().take(8).collect::<String>();
+
+        json!({
+            "from"          : self.addr(&itx.from),
+            "tonewcontract" : itx.to.is_none(),
+            "to"            : self.addr_or(&itx.to,""),
+            "shortdata"     : shortdata,
+            "value"         : self.ether(&itx.value)
+        })
+    }
+
 }

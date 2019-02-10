@@ -1,15 +1,17 @@
 use std::process::Command;
 use std::collections::HashMap;
 use std::io;
-use state::Config;
+use std::io::prelude::*;
 use std::fs;
 use std::fs::File;
+
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-use std::io::prelude::*;
+
+use bootstrap::Config;
 use rustc_hex::{FromHex,ToHex};
 
-use tiny_keccak;
+use keccak_hash;
 use ethabi;
 use ethabi::param_type::{Writer, ParamType};
 
@@ -103,9 +105,9 @@ pub fn compile_and_verify(
     File::create(&input)?.write_all(source.as_bytes())?;
 
     let args : Vec<&str> = if optimized {
-        vec![&input,"-o",&tmp_dir,"--combined-json","abi,bin-runtime","--optimize"]
+        vec![&input,"-o",&tmp_dir,"--combined-json","abi,bin-runtime","--optimize","--optimize-runs","200"]
     } else {
-        vec![&input,"-o",&tmp_dir,"--combined-json","abi,bin-runtime"]
+        vec![&input,"-o",&tmp_dir,"--combined-json","abi,bin-runtime","--optimize-runs","200"]
     };
 
     let cmdoutput = Command::new(format!("{}/{}",cfg.solc_path,compiler))
@@ -131,12 +133,29 @@ pub fn compile_and_verify(
 fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<(),Error> {
     let binruntime : Vec<u8> = contract.binruntime.from_hex()?;
 
+    // compiled code may have multiple swam hashes in the following
+    // way a1 65 62 7a 7a 72 30 58 20 + hash(32bytes) + 0029
+
+    let mut l = code.len();
+    while l > 50 
+        && code[l-1]==0x29  && code[l-2]==0x00
+        && code[l-35]==0x20 && code[l-36]==0x58  
+        && code[l-37]==0x30 && code[l-38]==0x72  
+        && code[l-39]==0x7a && code[l-40]==0x7a  
+        && code[l-41]==0x62 && code[l-42]==0x65  
+        && code[l-43]==0xa1  {
+
+        l -= 43;
+    }
+
     // compiled code includes the swarm hash (32 bytes) + 00 29
     if code.len() != binruntime.len() || code.len() < 34 {
+        warn!("blockchain {}",code.to_hex::<String>());
+        warn!("compiled   {}",binruntime.to_hex::<String>());
         Err(Error::ContractInvalid)
-    } else if code[0..code.len()-34] != binruntime[0..code.len()-34] {
-        println!("blockchain {}",code.to_hex::<String>());
-        println!("compiled   {}",binruntime.to_hex::<String>());
+    } else if code[0..l] != binruntime[0..l] {
+        warn!("blockchain {}",code.to_hex::<String>());
+        warn!("compiled   {}",binruntime.to_hex::<String>());
         Err(Error::CodeDoesNotMatch)
     } else {
         Ok(())
@@ -209,8 +228,5 @@ fn fill_signature(name: &str, params: &[ParamType], result: &mut [u8]) {
 		.join(",");
 
 	let data: Vec<u8> = From::from(format!("{}({})", name, types).as_str());
-
-	let mut sponge = tiny_keccak::Keccak::new_keccak256();
-	sponge.update(&data);
-	sponge.finalize(result);
+    keccak_hash::keccak_256(&data,result);
 }

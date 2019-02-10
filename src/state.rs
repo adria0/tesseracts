@@ -1,50 +1,16 @@
-#[derive(RustEmbed)]
-#[folder = "tmpl"]
-struct Asset;
-
 use db::AppDB;
 
-use std::fs::File;
-use std::io::prelude::*;
+use std::collections::HashMap;
+use web3::types::{Address, H256, Transaction, U256};
 use std::sync::atomic::AtomicBool;
-
+use bootstrap::{Config,load_handlebars_templates};
 use handlebars::Handlebars;
+use types::hex_to_addr;
 
-#[derive(Deserialize, Debug)]
-pub struct Config {
-    pub db_path: String,
-    pub web3_url: String,
-    pub scan: bool,
-    pub scan_start_block: Option<u64>,
-    pub bind: String,
-    pub solc_path : String,
-}
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Toml(toml::de::Error),
-}
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Self {
-        Error::Io(err)
-    }
-}
-impl From<toml::de::Error> for Error {
-    fn from(err: toml::de::Error) -> Self {
-        Error::Toml(err)
-    }
-}
-
-impl Config {
-    pub fn read(path: &str) -> Result<Self, Error> {
-        let mut contents = String::new();
-        File::open(path)?.read_to_string(&mut contents)?;
-        Ok(toml::from_str(&contents)?)
-    }
-    pub fn read_default() -> Result<Self, Error> {
-        Config::read("rchain.toml")
-    }
+error_chain! {
+    foreign_links {
+        Fmt(rustc_hex::FromHexError);
+    }    
 }
 
 pub struct GlobalState {
@@ -52,6 +18,7 @@ pub struct GlobalState {
     pub db: AppDB,
     pub cfg: Config,
     pub hb: Handlebars,
+    pub named_address : HashMap<Address,String>,
 }
 
 pub struct Web3Client {
@@ -60,23 +27,11 @@ pub struct Web3Client {
 }
 
 impl GlobalState {
-    pub fn new(cfg: Config) -> Self {
+
+    pub fn new(cfg: Config) -> Result<Self>  {
+        
         let mut hb = Handlebars::new();
-
-        // process assets
-        for asset in Asset::iter() {
-            let file = asset.into_owned();
-
-            let tmpl = String::from_utf8(
-                Asset::get(file.as_str())
-                    .unwrap_or_else(|| panic!("Unable to read file {}", file))
-                    .to_vec(),
-            )
-            .unwrap_or_else(|_| panic!("Unable to decode file {}", file));
-
-            hb.register_template_string(file.as_str(), &tmpl)
-                .unwrap_or_else(|_| panic!("Invalid template {}", file));
-        }
+        load_handlebars_templates(&mut hb);
 
         // create global stop signal
         let stop_signal = AtomicBool::new(false);
@@ -88,7 +43,14 @@ impl GlobalState {
                 .expect("error setting last block");
         }
 
-        GlobalState { cfg, db, hb, stop_signal }
+        let mut named_address = HashMap::new();
+        if let Some(nas) = &cfg.named_address {
+            for na in nas {
+                named_address.insert(hex_to_addr(&na.address)?, na.name.clone());
+            }        
+        }
+
+        Ok(GlobalState { cfg, db, hb, stop_signal, named_address })
     }
     pub fn new_web3client(&self) -> Web3Client {
         let (eloop, transport) = web3::transports::Http::new(self.cfg.web3_url.as_str())
@@ -99,4 +61,5 @@ impl GlobalState {
             web3: web3::Web3::new(transport),
         }
     }
+
 }
