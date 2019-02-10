@@ -54,9 +54,8 @@ pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
     let wc = ge.new_web3client();
     let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>();
     if let Ok(page_no) = page_no {
-        let reader = BlockchainReader::new(&wc,&ge.db);
         Response::html(
-            match home::html(&reader,&ge.hb,page_no) {
+            match home::html(&ge,page_no) {
                 Ok(html) => html,
                 Err(err) => error_page(format!("Error: {:?}", err).as_str())
             }
@@ -67,21 +66,19 @@ pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
 }
 
 pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
-    let wc = ge.new_web3client();
-    let reader = BlockchainReader::new(&wc,&ge.db);
     let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>().unwrap();
     
     if id == "neb" {
-        let html = neb::html(&ge.db,&reader,&ge.hb,page_no);
+        let html = neb::html(&ge,page_no);
         Response::html(match html {
             Ok(html) => html,
             Err(err) => error_page(format!("Error: {:?}", err).as_str())
         })
     } else if let Some(id) = Id::from(&id) {
         let html = match id {
-            Id::Addr(addr) => address::html(&ge.db,&ge.cfg,&reader,&ge.hb,&addr,page_no),
-            Id::Tx(txid) => tx::html(&ge.db,&reader,&ge.hb,txid),
-            Id::Block(block) => block::html(&reader,&ge.hb,block)
+            Id::Addr(addr) => address::html(&ge,&addr,page_no),
+            Id::Tx(txid) => tx::html(&ge,txid),
+            Id::Block(block) => block::html(&ge,block)
         };
         Response::html(match html {
             Ok(html) => html,
@@ -93,7 +90,6 @@ pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
 }
 
 pub fn post_contract(
-    request: &Request,
     ge: &GlobalState,
     id: &str,
     contract_source: &str,

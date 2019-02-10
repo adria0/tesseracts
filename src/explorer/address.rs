@@ -1,23 +1,25 @@
-use handlebars::Handlebars;
 use web3::types::Address;
 
-use super::error::Error;
+use super::error::*;
 use super::html::*;
 
 use super::super::bcio::BlockchainReader;
-use super::super::bootstrap::Config;
-use super::super::db::AppDB;
+use super::super::state::GlobalState;
 use super::contract;
 use super::paginate;
 
 pub fn html(
-    db : &AppDB, 
-    cfg : &Config,
-    reader: &BlockchainReader,
-    hb: &Handlebars,
+    ge: &GlobalState,
     addr: &Address,
     page_no : u64,
-) -> Result<String, Error> {
+) -> Result<String> {
+
+    let wc = ge.new_web3client();
+    let cfg = &ge.cfg;
+    let hr = HtmlRender::new(&ge); 
+    let reader = BlockchainReader::new(&wc,&ge.db);
+    let db = &ge.db;
+    let hb = &ge.hb;
 
     let balance = reader.current_balance(addr)?;
     let code = reader.current_code(addr)?;
@@ -34,13 +36,13 @@ pub fn html(
         let it = reader.db.iter_addr_tx_links(&addr).skip(pg.from as usize);
         for (txhash,_,_) in it.take((pg.to-pg.from) as usize) {
             if let Some(txrc) = reader.tx(txhash)? {
-                txs.push(tx_short_json(&txrc.0));
+                txs.push(hr.tx(&txrc.0));
             }
         }
     }
     if !code.0.is_empty() {
 
-        let rawcodehtml = code.html().text;
+        let rawcodehtml = hr.bytes(&code.0);
         let rawcode = rawcodehtml.split(',').collect::<Vec<&str>>();
         
         if let Some(contract) = reader.db.get_contract(addr)? {
@@ -48,7 +50,7 @@ pub fn html(
                 "address.handlebars",
                 &json!({
                     "address" : format!("0x{:x}",addr),
-                    "balance" : Ether(balance).html().text,
+                    "balance" : hr.ether(&balance).text,
                     "txs" : txs,
                     "txs_count" : count_addr_tx_links,
                     "has_next_page": pg.next_page.is_some(),
@@ -71,7 +73,7 @@ pub fn html(
                 "address.handlebars",
                 &json!({
                     "address" : format!("0x{:x}",addr),
-                    "balance" : Ether(balance).html().text,
+                    "balance" : hr.ether(&balance).text,
                     "txs" : txs,
                     "txs_count" : count_addr_tx_links,
                     "has_next_page": pg.next_page.is_some(),
@@ -90,7 +92,7 @@ pub fn html(
             "address.handlebars",
             &json!({
                 "address" : format!("0x{:x}",addr),
-                "balance" : Ether(balance).html().text,
+                "balance" : hr.ether(&balance).text,
                 "txs"     : txs,
                 "txs_count" : count_addr_tx_links,
                 "has_next_page": pg.next_page.is_some(),

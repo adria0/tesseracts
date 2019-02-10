@@ -1,9 +1,10 @@
 use reqwest;
 use ethabi;
 
+use super::contract;
+
 use super::super::db;
 use super::super::bcio;
-use super::contract;
 
 #[derive(Debug)]
 pub enum Error {
@@ -53,3 +54,6 @@ impl From<contract::Error> for Error {
         Error::Contract(err)
     }
 }
+
+pub type Result<T> = std::result::Result<T,Error>;
+

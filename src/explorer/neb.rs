@@ -1,20 +1,24 @@
-use handlebars::Handlebars;
 use web3::types::{BlockNumber,BlockId};
 
-use super::super::bcio::BlockchainReader;
+use super::error::*;
 use super::clique::parse_clique_header;
 use super::error::Error;
-use super::html::{Timestamp,HtmlRender};
+use super::html::HtmlRender;
 use super::paginate;
-use super::super::db;
+
+use super::super::state::GlobalState;
+use super::super::bcio::BlockchainReader;
 
 pub fn html(
-    db : &db::AppDB,
-    reader: &BlockchainReader,
-    hb: &Handlebars,
+    ge: &GlobalState,
     page_no : u64,
+) -> Result<String> {
 
-) -> Result<String, Error> {
+    let wc = ge.new_web3client();
+    let hr = HtmlRender::new(&ge); 
+    let reader = BlockchainReader::new(&wc,&ge.db);
+    let db = &ge.db;
+    let hb = &ge.hb;
 
     let mut blocks = Vec::new();
 
@@ -29,16 +33,15 @@ pub fn html(
     if pg.from <= pg.to {
         let it = reader.db.iter_non_empty_blocks()?.skip(pg.from as usize);
         for n in it.take((pg.to-pg.from) as usize) {
-            let block_id = BlockId::Number(BlockNumber::Number(n));
             if let Some(block) = reader.block(n)? {
                 let author = parse_clique_header(&block).unwrap();
                 blocks.push(json!({
-                    "block"     : block_id.html(),
-                    "author"     : author.html(),
+                    "block"     : hr.blockno(n),
+                    "author"    : hr.addr(&author),
                     "tx_count"  : block.transactions.len(),
-                    "timestamp" : Timestamp(block.timestamp).html().text,
-                    "gas_used"   : block.gas_used.low_u64(), 
-                    "gas_limit"  : block.gas_limit.low_u64()
+                    "timestamp" : hr.timestamp(&block.timestamp).text,
+                    "gas_used"  : block.gas_used.low_u64(), 
+                    "gas_limit" : block.gas_limit.low_u64()
                 }));
             } else {
                 return Err(Error::Unexpected);

@@ -1,6 +1,11 @@
-db_path  = "data/db_nn"
-web3_url = "https://nou.network/web3"
-scan     = false
-scan_start_block = 1
-bind     = "0.0.0.0:8000"
-solc_path  = "data/solc"
+db_path          = 
+web3_url         = 
+scan             = 
+scan_start_block =  
+bind             = 
+web3_client      = "geth_clique"
+solc_path        = 
+
+[[named_address]]
+name    = 
+address = 

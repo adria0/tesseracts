@@ -2,7 +2,6 @@ use db;
 
 #[derive(Debug)]
 pub enum Error {
-    Uninitialized,
     Web3(web3::Error),
     DB(db::Error),
     FromHex(rustc_hex::FromHexError),
@@ -23,4 +22,7 @@ impl From<rustc_hex::FromHexError> for Error {
         Error::FromHex(err)
     }
 }
+
+pub type Result<T> = std::result::Result<T,Error>;
+
 

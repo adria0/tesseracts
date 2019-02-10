@@ -8,7 +8,7 @@ use web3::types::{
     H256, U256,
 };
 
-use super::error::Error;
+use super::error::Result;
 
 pub struct BlockchainReader<'a> {
     wc: &'a Web3Client,
@@ -19,17 +19,17 @@ impl<'a> BlockchainReader<'a> {
     pub fn new(wc: &'a Web3Client, db: &'a AppDB) -> Self {
         BlockchainReader { wc, db }
     }
-    pub fn current_block_number(&self) -> Result<u64, Error> {
+    pub fn current_block_number(&self) -> Result<u64>{
         Ok(self.wc.web3.eth().block_number().wait()?.low_u64())
     }
-    pub fn current_balance(&self, addr: &Address) -> Result<U256, Error> {
+    pub fn current_balance(&self, addr: &Address) -> Result<U256>{
         Ok(self.wc.web3.eth().balance(*addr, None).wait()?)
     }
-    pub fn current_code(&self, addr: &Address) -> Result<Bytes, Error> {
+    pub fn current_code(&self, addr: &Address) -> Result<Bytes>{
         Ok(self.wc.web3.eth().code(*addr, None).wait()?)
     }
 
-    pub fn block(&self, blockno: u64) -> Result<Option<Block<H256>>, Error> {
+    pub fn block(&self, blockno: u64) -> Result<Option<Block<H256>>>{
         if let Some(blk) = self.db.get_block(blockno)? {
             Ok(Some(blk))
         } else {
@@ -41,7 +41,7 @@ impl<'a> BlockchainReader<'a> {
             }
         }
     }
-    pub fn block_with_txs(&self, blockno: u64) -> Result<Option<Block<Transaction>>, Error> {
+    pub fn block_with_txs(&self, blockno: u64) -> Result<Option<Block<Transaction>>>{
         // assume that if the block exists all transactions will also exist
         if let Some(blk) = self.db.get_block(blockno)? {
             let mut txs = HashMap::new();
@@ -64,7 +64,7 @@ impl<'a> BlockchainReader<'a> {
     pub fn tx(
         &self,
         txhash: H256,
-    ) -> Result<Option<(Transaction, Option<TransactionReceipt>)>, Error> {
+    ) -> Result<Option<(Transaction, Option<TransactionReceipt>)>>{
         let mut tx = self.db.get_tx(&txhash)?;
         if tx.is_none() {
             tx = self

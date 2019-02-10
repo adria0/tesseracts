@@ -10,8 +10,9 @@ extern crate serde_derive;
 extern crate rouille;
 #[macro_use]
 extern crate log;
-#[macro_use]
 extern crate structopt;
+#[macro_use]
+extern crate error_chain;
 
 extern crate stderrlog;
 extern crate ctrlc;
@@ -85,7 +86,7 @@ fn main() {
     let cfg = bootstrap::Config::read(&opt.cfg)
         .expect("cannot read config");
 
-    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg)));
+    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg).unwrap()));
     debug!("non-empty-blocks {:?}",shared_ge.0.db.count_non_empty_blocks());
 
     if shared_ge.0.cfg.scan {
@@ -119,7 +120,7 @@ fn main() {
                     contract_optimized: bool,
                     contract_name: String,
                 }));
-                explorer::post_contract(&request, &shared_ge.0, &id,
+                explorer::post_contract(&shared_ge.0, &id,
                     &data.contract_source, &data.contract_compiler,
                     data.contract_optimized, &data.contract_name
                 )

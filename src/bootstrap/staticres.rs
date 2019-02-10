@@ -4,17 +4,6 @@ struct Asset;
 
 use handlebars::Handlebars;
 
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Toml(toml::de::Error),
-}
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Self {
-        Error::Io(err)
-    }
-}
-
 pub fn load_handlebars_templates(hb: &mut Handlebars) {
     // process assets
     for asset in Asset::iter() {

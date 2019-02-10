@@ -27,4 +27,4 @@ stderrlog = "0.4.1"
 structopt = "0.2.14"
 rlp = "0.3.0"
 ethkey = { git = "https://github.com/paritytech/parity.git" }
-eth-secp256k1 = { git = "https://github.com/paritytech/rust-secp256k1" }
+error-chain = { version = "0.12", default-features = false }
