@@ -1,5 +1,7 @@
+[![Build Status](https://travis-ci.org/adriamb/tesseracts.svg?branch=master)](https://travis-ci.org/adriamb/tesseracts)
+
 # tesseracts
-A minimalistic block explorer to learn rust.
+sA minimalistic block explorer to learn rust.
 
 This is an experimantal block explorer written in rust. At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
 
