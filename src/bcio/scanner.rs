@@ -39,7 +39,7 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<()>{
             let itxs = dbg.internal_txs(&tx).wait()?.parse()?;
             
             // write them all
-            gs.db.push_tx(&tx, &re,&itxs)?;
+            gs.db.add_tx(&tx, &re,&itxs)?;
         }
 
         gs.db
