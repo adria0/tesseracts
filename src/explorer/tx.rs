@@ -51,7 +51,7 @@ pub fn html(
                 }
 
                 txt.push("data".to_string());
-                for ll in hr.bytes(&log.data.0).split(',') {
+                for ll in hr.bytes(&log.data.0,50) {
                     txt.push(format!("  {}",ll));
                 }
                 
@@ -78,8 +78,7 @@ pub fn html(
                 input.push(String::from(""));
             }
 
-            let inputhtml = hr.bytes(&tx.input.0);
-            let inputvec : Vec<String> = inputhtml.split(',').map(|x| x.to_string()).collect(); 
+            let inputvec = hr.bytes(&tx.input.0,50);
             input.extend_from_slice(&inputvec);
         }
 

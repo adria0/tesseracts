@@ -174,10 +174,11 @@ pub fn call_to_string(abistr : &str, input: &[u8]) -> Result<Vec<String>,Error> 
     let abi = ethabi::Contract::load(abistr.as_bytes())?;
 
     for func in abi.functions() {
+
         let paramtypes : Vec<ParamType> = func.inputs.iter().map(|p| p.kind.clone()).collect();
         let sig = short_signature(&func.name,&paramtypes);
 
-        if input[0..4] == sig[0..4] {
+        if input.len() >= 4 && input[0..4] == sig[0..4] {
             let mut out = Vec::new();
             out.push(format!("function {}",&func.name));
 
@@ -194,7 +195,14 @@ pub fn call_to_string(abistr : &str, input: &[u8]) -> Result<Vec<String>,Error> 
             return Ok(out);
         }
     }
-    Err(Error::FunctionNotFound)
+
+    if abi.fallback {
+        let mut out = Vec::new();
+        out.push(format!("function ()"));
+        return Ok(out);
+    } else {
+        Err(Error::FunctionNotFound)
+    }
 }
 
 pub fn log_to_string(abistr : &str, txlog: web3::types::Log) -> Result<Vec<String>,Error> {

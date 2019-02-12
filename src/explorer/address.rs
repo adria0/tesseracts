@@ -46,8 +46,7 @@ pub fn html(
     }
     if !code.0.is_empty() {
 
-        let rawcodehtml = hr.bytes(&code.0);
-        let rawcode = rawcodehtml.split(',').collect::<Vec<&str>>();
+        let rawcode = hr.bytes(&code.0,50);
         
         if let Some(contract) = reader.db.get_contract(addr)? {
             Ok(hb.render(

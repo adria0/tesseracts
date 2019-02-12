@@ -65,11 +65,10 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
-    pub fn bytes(&self, bytes : &[u8]) -> String {
-        bytes.chunks(50)
+    pub fn bytes(&self, bytes : &[u8], chunk_size: usize) -> Vec<String> {
+        bytes.chunks(chunk_size)
             .map(|c| c.to_hex::<String>())
-            .map(|c| format!("{},", c))
-            .collect::<String>()
+            .collect()
     }
 
     pub fn txid_short(&self, txid : &H256) -> TextWithLink {
@@ -114,7 +113,7 @@ impl<'a> HtmlRender<'a> {
         let (to_link,to_label) = if let Some(to) = tx.to {             
             (self.addr(&to),"")
         } else if let Some(rcpt) = rcpt {
-            (self.addr_contract(&rcpt.contract_address.unwrap()),"")
+            (self.addr_newcontract(&rcpt.contract_address.unwrap()),"")
         } else {
             (TextWithLink::blank(),"New contract")
         };
@@ -131,9 +130,9 @@ impl<'a> HtmlRender<'a> {
         })
     }
 
-    fn addr_contract(&self, addr: &Address) -> TextWithLink {
+    fn addr_newcontract(&self, addr: &Address) -> TextWithLink {
         let mut twl = self.addr(&addr);
-        twl.text = format!("📄 {}",twl.text);
+        twl.text = format!("🆕 {}",twl.text);
         twl
     }
 
@@ -141,7 +140,7 @@ impl<'a> HtmlRender<'a> {
         if let Some(to) = to {
             self.addr(&to)
         } else {
-            self.addr_contract(&contract.unwrap())
+            self.addr_newcontract(&contract.unwrap())
         }
     }
 
@@ -156,7 +155,7 @@ impl<'a> HtmlRender<'a> {
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid_short(&tx.hash),
             "from"          : self.addr(&itx.from),
-            "to"            : self.addr_to(&itx.to,&itx.contract),
+            "to_link"       : self.addr_to(&itx.to,&itx.contract),
             "shortdata"     : shortdata,
             "value"         : self.ether(&itx.value)
         })

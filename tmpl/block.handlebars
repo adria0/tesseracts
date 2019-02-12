@@ -33,7 +33,8 @@
         </tr>
         <tr>
             <td>Extra data</td>
-            <td class=fixed>{{extra_data}}</td>
+            <td class=code>{{#each extra_data}}{{this}}<br>
+            {{/each}}</td>
         </tr>
         <tr>
             <td>Timestamp</td>
@@ -46,14 +47,6 @@
         <tr>
             <td>Total difficulty</td>
             <td>{{total_difficulty}}</td>
-        </tr>
-        <tr>
-            <td>Seal fields</td>
-            <td>{{seal_fields}}</td>
-        </tr>
-        <tr>
-            <td>Uncles</td>
-            <td>{{uncles}}</td>
         </tr>
     </tbody>
 </table>

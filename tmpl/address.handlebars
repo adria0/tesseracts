@@ -61,7 +61,7 @@
 
 <h5 class="title">Upload contract source</h5>
 <form action="/{{ address }}/contract" method="post">
-    <textarea name="contract_source" rows="20" cols="105">
+    <textarea class="code" name="contract_source" rows="20" cols="105">
 {{ contratsource }}</textarea><br>
     Compiler version <select name="contract_compiler">
         {{#each solcversions}}<option>{{this}}</option>
@@ -76,7 +76,7 @@
 
 
 <h5 class="title">Raw EVM Code</h5>
-<textarea rows="20" cols="105" disabled="true">
+<textarea class="code" rows="20" cols="105" disabled="true">
 {{#each rawcode}}{{this}}
 {{/each}}</textarea>
 {{ /if }}
