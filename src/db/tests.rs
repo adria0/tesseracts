@@ -150,7 +150,7 @@ mod tests {
 
         // + tx_a1_to_a2
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a2, &v.rcp_a1_to_a2, &[]).unwrap());
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a2, &v.rcp_a1_to_a2, Some(&[])).unwrap());
         assert_eq!(1, appdb.count_addr_tx_links(&v.a1).unwrap());
         assert_eq!(1, appdb.count_addr_tx_links(&v.a2).unwrap());
 
@@ -164,7 +164,7 @@ mod tests {
 
         // + tx_a1_to_contract
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_contract, &v.rcp_a1_to_contract,&[]).unwrap());
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_contract, &v.rcp_a1_to_contract,Some(&[])).unwrap());
         assert_eq!(2, appdb.count_addr_tx_links(&v.a1).unwrap());
         assert_eq!(1, appdb.count_addr_tx_links(&v.a2).unwrap());
         assert_eq!(1, appdb.count_addr_tx_links(&v.a3).unwrap());
@@ -180,7 +180,7 @@ mod tests {
 
         // + tx_a1_to_a1
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a1, &v.rcp_a1_to_a1,&[]).unwrap());
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a1, &v.rcp_a1_to_a1,Some(&[])).unwrap());
         assert_eq!(3, appdb.count_addr_tx_links(&v.a1).unwrap());
 
         let mut it_a1 = appdb.iter_addr_tx_links(&v.a1);
@@ -196,9 +196,9 @@ mod tests {
         let appdb = init();
         let v = vars();
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a2, &v.rcp_a1_to_a2, &[
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a2, &v.rcp_a1_to_a2, Some(&[
             InternalTx { from : v.a2, to: Some(v.a3), contract:None, input: Vec::new(), value:v.one_u256 }
-        ]).unwrap());
+        ])).unwrap());
 
         let mut it_a2 = appdb.iter_addr_tx_links(&v.a2);
         assert_eq!(Some((v.h1,1)), it_a2.next());
@@ -212,9 +212,9 @@ mod tests {
         let appdb = init();
         let v = vars();
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a2, &v.rcp_a1_to_a2, &[
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a2, &v.rcp_a1_to_a2, Some(&[
             InternalTx { from : v.a2, to: None, contract:Some(v.a4), input: Vec::new(), value:v.one_u256}
-        ]).unwrap());
+        ])).unwrap());
 
         let mut it_a2 = appdb.iter_addr_tx_links(&v.a2);
         assert_eq!(Some((v.h1,1)), it_a2.next());
@@ -231,9 +231,9 @@ mod tests {
         let appdb = init();
         let v = vars();
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a1, &v.rcp_a1_to_a1, &[
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a1, &v.rcp_a1_to_a1, Some(&[
             InternalTx { from : v.a1, to: Some(v.a1), contract:None, input: Vec::new(), value:v.one_u256 }
-        ]).unwrap());
+        ])).unwrap());
 
         let mut it_a1 = appdb.iter_addr_tx_links(&v.a1);
         assert_eq!(Some((v.h3,1)), it_a1.next());
@@ -246,10 +246,10 @@ mod tests {
         let appdb = init();
         let v = vars();
 
-        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a1, &v.rcp_a1_to_a1, &[
+        assert_eq!((), appdb.add_tx(&v.tx_a1_to_a1, &v.rcp_a1_to_a1, Some(&[
             InternalTx { from : v.a3, to: Some(v.a1), contract:None, input: Vec::new(), value:v.one_u256 },
             InternalTx { from : v.a2, to: None, contract:Some(v.a3), input: Vec::new(), value:v.one_u256 }
-        ]).unwrap());
+        ])).unwrap());
 
         assert_eq!(0,appdb._count_itxs(&v.h1));
         assert_eq!(2,appdb._count_itxs(&v.h3));

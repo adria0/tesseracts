@@ -34,12 +34,14 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<()>{
             // read transaction receipt
             let re = wc.web3.eth().transaction_receipt(tx.hash).wait()?.unwrap();
 
-            // read internal transactions
-            let dbg : geth::Debug<_> = wc.web3.api();
-            let itxs = dbg.internal_txs(&tx).wait()?.parse()?;
-            
-            // write them all
-            gs.db.add_tx(&tx, &re,&itxs)?;
+            if gs.cfg.web3_internaltx {
+                // read internal transactions
+                let dbg : geth::Debug<_> = wc.web3.api();
+                let itxs = dbg.internal_txs(&tx).wait()?.parse()?;
+                gs.db.add_tx(&tx, &re, Some(&itxs))?;
+            } else {
+                gs.db.add_tx(&tx, &re, None)?;
+            };
         }
 
         gs.db

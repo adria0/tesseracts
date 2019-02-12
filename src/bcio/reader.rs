@@ -1,4 +1,3 @@
-use db::AppDB;
 use state::*;
 use std::collections::HashMap;
 use types::into_block;
@@ -10,14 +9,19 @@ use web3::types::{
 
 use super::error::Result;
 
+use geth;
+use super::super::state::GlobalState;
+use super::super::types::InternalTx;
+
 pub struct BlockchainReader<'a> {
-    wc: &'a Web3Client,
-    pub db: &'a AppDB,
+    wc: Web3Client,
+    pub ge: &'a GlobalState,
 }
 
 impl<'a> BlockchainReader<'a> {
-    pub fn new(wc: &'a Web3Client, db: &'a AppDB) -> Self {
-        BlockchainReader { wc, db }
+    pub fn new(ge: &'a GlobalState) -> Self {
+        let wc = ge.new_web3client();
+        BlockchainReader { wc, ge }
     }
     pub fn current_block_number(&self) -> Result<u64>{
         Ok(self.wc.web3.eth().block_number().wait()?.low_u64())
@@ -30,7 +34,7 @@ impl<'a> BlockchainReader<'a> {
     }
 
     pub fn block(&self, blockno: u64) -> Result<Option<Block<H256>>>{
-        if let Some(blk) = self.db.get_block(blockno)? {
+        if let Some(blk) = self.ge.db.get_block(blockno)? {
             Ok(Some(blk))
         } else {
             let blockid = BlockId::Number(BlockNumber::Number(blockno));
@@ -43,10 +47,10 @@ impl<'a> BlockchainReader<'a> {
     }
     pub fn block_with_txs(&self, blockno: u64) -> Result<Option<Block<Transaction>>>{
         // assume that if the block exists all transactions will also exist
-        if let Some(blk) = self.db.get_block(blockno)? {
+        if let Some(blk) = self.ge.db.get_block(blockno)? {
             let mut txs = HashMap::new();
             for txhash in &blk.transactions {
-                let tx = self.db.get_tx(&txhash)?.unwrap(); // TODO: remove unwrap
+                let tx = self.ge.db.get_tx(&txhash)?.unwrap(); // TODO: remove unwrap
                 txs.insert(tx.hash, tx);
             }
             Ok(Some(into_block(blk, move |h: H256| {
@@ -65,7 +69,7 @@ impl<'a> BlockchainReader<'a> {
         &self,
         txhash: H256,
     ) -> Result<Option<(Transaction, Option<TransactionReceipt>)>>{
-        let mut tx = self.db.get_tx(&txhash)?;
+        let mut tx = self.ge.db.get_tx(&txhash)?;
         if tx.is_none() {
             tx = self
                 .wc
@@ -75,7 +79,7 @@ impl<'a> BlockchainReader<'a> {
                 .wait()?;
         }
         if let Some(tx) = tx {
-            let mut receipt = self.db.get_receipt(&txhash)?;
+            let mut receipt = self.ge.db.get_receipt(&txhash)?;
             if receipt.is_none() {
                 receipt = self.wc.web3.eth().transaction_receipt(txhash).wait()?
             }
@@ -83,6 +87,18 @@ impl<'a> BlockchainReader<'a> {
         } else {
             Ok(None)
         }
+    }
+
+    pub fn itx(
+        &self,
+        tx: &Transaction
+    ) -> Result<Vec<InternalTx>> {
+        let mut itxs : Vec<InternalTx> = self.ge.db.iter_itxs(&tx.hash).map(|(_,t)| t).collect();
+        if itxs.len() == 0 && self.ge.cfg.web3_internaltx {
+            let dbg : geth::Debug<_> = self.wc.web3.api();
+            itxs = dbg.internal_txs(&tx).wait()?.parse()?;
+        }
+        Ok(itxs)
     }
 
 }

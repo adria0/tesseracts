@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/adriamb/tesseracts.svg?branch=master)](https://travis-ci.org/adriamb/tesseracts)
 
 # tesseracts
-sA minimalistic block explorer to learn rust.
+A minimalistic block explorer to learn rust.
 
 This is an experimantal block explorer written in rust. At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
 
@@ -35,6 +35,10 @@ db_path          =
 # web3 json-rpc port, e.g. http://localhost:8545
 web3_client      = "geth_clique"
 web3_url         = 
+
+# process internal txs, true or false
+# it requieres geth with --syncmode=full --gcmode=archive and --rpcapi debug 
+web3_internaltx  = 
 
 # true|false if we want to scan blocks 
 scan             =  

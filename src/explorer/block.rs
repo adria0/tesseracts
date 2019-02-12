@@ -10,9 +10,8 @@ pub fn html(
     blockno: u64,
 ) -> Result<String> {
 
-    let wc = ge.new_web3client();
     let hr = HtmlRender::new(&ge); 
-    let reader = BlockchainReader::new(&wc,&ge.db);
+    let reader = BlockchainReader::new(&ge);
     let hb = &ge.hb;
 
     if let Some(block) = reader.block_with_txs(blockno)? {

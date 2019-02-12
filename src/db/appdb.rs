@@ -102,7 +102,7 @@ impl AppDB {
         Ok(())
     }
 
-    pub fn add_tx(&self, tx: &Transaction, tr: &TransactionReceipt, itxs : &[InternalTx]) -> Result<()> {
+    pub fn add_tx(&self, tx: &Transaction, tr: &TransactionReceipt, itxs : Option<&[InternalTx]>) -> Result<()> {
         // check pecondition: tx.to == Some || tr.contract_address == Some
         match (tx.to, tr.contract_address) {
             (Some(_),None) => {},
@@ -124,9 +124,11 @@ impl AppDB {
         // TxLinks
         self.add_addrtx_links(&tx,tx.from,tx.to,tr.contract_address,0)?;
         
-        // InternalTxs
-        for (i, itx) in itxs.into_iter().enumerate() {
-            self.add_itx(&tx,&itx,i as u64 + 1)?;
+        if let Some(itxs) = itxs {
+            // InternalTxs
+            for (i, itx) in itxs.into_iter().enumerate() {
+                self.add_itx(&tx,itx,i as u64 + 1)?;
+            }
         }
 
         Ok(())

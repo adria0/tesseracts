@@ -16,6 +16,7 @@ pub struct Config {
     pub db_path: String,
     pub web3_url: String,
     pub web3_client: String,
+    pub web3_internaltx: bool,
     pub scan: bool,
     pub scan_start_block: Option<u64>,
     pub bind: String,

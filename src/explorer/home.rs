@@ -11,10 +11,10 @@ pub fn html(
     page_no : u64,
 ) -> Result<String, Error> {
 
-    let wc = ge.new_web3client();
     let hr = HtmlRender::new(&ge); 
-    let reader = BlockchainReader::new(&wc,&ge.db);
+    let reader = BlockchainReader::new(&ge);
     let hb = &ge.hb;
+    let db = &ge.db;
 
     let last_blockno = reader.current_block_number()?;
     let mut blocks = Vec::new();
@@ -39,7 +39,7 @@ pub fn html(
     Ok(hb.render(
         "home.handlebars",
         &json!({
-            "last_indexed_block" : reader.db.get_last_block().unwrap(),
+            "last_indexed_block" : db.get_last_block().unwrap(),
             "blocks": blocks,
             "has_next_page": pg.next_page.is_some(),
             "next_page": pg.next_page.unwrap_or(0),

@@ -11,9 +11,8 @@ pub fn html(
     ge: &GlobalState,
     txid: H256) -> Result<String> {
 
-    let wc = ge.new_web3client();
     let hr = HtmlRender::new(&ge); 
-    let reader = BlockchainReader::new(&wc,&ge.db);
+    let reader = BlockchainReader::new(&ge);
     let db = &ge.db;
     let hb = &ge.hb;
 
@@ -64,9 +63,7 @@ pub fn html(
                     "address" : hr.addr(&log.address),
                     "txt"     : txt,
                 }));
-
             }
-
         }
 
         // log_to_string
@@ -83,9 +80,10 @@ pub fn html(
         }
 
         // internal transactions
-        let itxs : Vec<_>= reader.db.iter_itxs(&txid)
-            .map(|(_,itx)| hr.itx(&itx))
-            .collect();
+        let itxs = reader.itx(&tx)?
+            .into_iter()
+            .map(|itx| hr.tx_itx(&tx,&itx))
+            .collect::<Vec<_>>();
 
         // render page
         Ok(hb.render(

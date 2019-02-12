@@ -11,9 +11,8 @@ pub fn html(
     page_no : u64,
 ) -> Result<String> {
 
-    let wc = ge.new_web3client();
     let hr = HtmlRender::new(&ge); 
-    let reader = BlockchainReader::new(&wc,&ge.db);
+    let reader = BlockchainReader::new(&ge);
     let db = &ge.db;
     let hb = &ge.hb;
 
@@ -28,7 +27,7 @@ pub fn html(
     let pg = paginate::paginate(limit,20,page_no);
 
     if pg.from <= pg.to {
-        let it = reader.db.iter_non_empty_blocks()?.skip(pg.from as usize);
+        let it = db.iter_non_empty_blocks()?.skip(pg.from as usize);
         for n in it.take((pg.to-pg.from) as usize) {
             if let Some(block) = reader.block(n)? {
                 let author = parse_clique_header(&block).unwrap();
@@ -49,7 +48,7 @@ pub fn html(
     Ok(hb.render(
         "neb.handlebars",
         &json!({
-            "last_indexed_block" : reader.db.get_last_block().unwrap(),
+            "last_indexed_block" : db.get_last_block().unwrap(),
             "blocks": blocks,
             "has_next_page": pg.next_page.is_some(),
             "next_page": pg.next_page.unwrap_or(0),

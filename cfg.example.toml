@@ -1,9 +1,13 @@
 db_path          = 
+
+web3_client      = "geth_clique"
 web3_url         = 
+web3_internaltx  = 
+
 scan             = 
 scan_start_block =  
+
 bind             = 
-web3_client      = "geth_clique"
 solc_path        = 
 
 [[named_address]]

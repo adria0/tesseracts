@@ -14,10 +14,9 @@ pub fn html(
     page_no : u64,
 ) -> Result<String> {
 
-    let wc = ge.new_web3client();
     let cfg = &ge.cfg;
     let hr = HtmlRender::new(&ge); 
-    let reader = BlockchainReader::new(&wc,&ge.db);
+    let reader = BlockchainReader::new(&ge);
     let db = &ge.db;
     let hb = &ge.hb;
 
@@ -33,7 +32,7 @@ pub fn html(
     };
     let pg = paginate::paginate(limit,20,page_no);
     if pg.from <= pg.to {
-        let it = reader.db.iter_addr_tx_links(&addr).skip(pg.from as usize);
+        let it = db.iter_addr_tx_links(&addr).skip(pg.from as usize);
         for (txhash,itx_no) in it.take((pg.to-pg.from) as usize) {
             let tx = reader.tx(txhash)?.unwrap();
             if itx_no == 0 {
@@ -48,7 +47,7 @@ pub fn html(
 
         let rawcode = hr.bytes(&code.0,50);
         
-        if let Some(contract) = reader.db.get_contract(addr)? {
+        if let Some(contract) = db.get_contract(addr)? {
             Ok(hb.render(
                 "address.handlebars",
                 &json!({

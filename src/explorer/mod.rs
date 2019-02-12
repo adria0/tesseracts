@@ -98,8 +98,7 @@ pub fn post_contract(
 ) -> Response {
 
     if let Some(Id::Addr(addr)) = Id::from(&id) {
-        let wc = ge.new_web3client();
-        let reader = BlockchainReader::new(&wc,&ge.db);
+        let reader = BlockchainReader::new(&ge);
 
         let code = reader.current_code(&addr).expect("failed to read contract code").0;
 
