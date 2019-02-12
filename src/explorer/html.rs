@@ -1,4 +1,4 @@
-use web3::types::{Address, H256, Transaction, U256};
+use web3::types::{Address, H256, Transaction, TransactionReceipt, U256};
 use rustc_hex::ToHex;
 use serde_derive::Serialize;
 use chrono::prelude::*;
@@ -6,7 +6,7 @@ use chrono::prelude::*;
 use super::super::types::InternalTx;
 use super::super::state::GlobalState;
 
-const DATETIME_FORMAT : &'static str = "%Y-%m-%d %H:%M:%S";
+const DATETIME_FORMAT : &str = "%Y-%m-%d %H:%M:%S";
 
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
@@ -47,7 +47,7 @@ pub struct HtmlRender<'a> {
 impl<'a> HtmlRender<'a> {
     
     pub fn new(ge :&'a GlobalState) -> HtmlRender<'a> {
-        return HtmlRender { ge }
+        HtmlRender { ge }
     }
     
     pub fn addr(&self, addr : &Address) -> TextWithLink {
@@ -66,7 +66,7 @@ impl<'a> HtmlRender<'a> {
     }
 
     pub fn bytes(&self, bytes : &[u8]) -> String {
-        bytes.chunks(32)
+        bytes.chunks(50)
             .map(|c| c.to_hex::<String>())
             .map(|c| format!("{},", c))
             .collect::<String>()
@@ -105,21 +105,44 @@ impl<'a> HtmlRender<'a> {
         TextWithLink::new_text(format!("{}",dt.format(DATETIME_FORMAT)))
     }
 
-    pub fn tx(&self,tx: &Transaction) -> serde_json::Value {
+    pub fn tx(&self,tx: &Transaction, rcpt: &Option<TransactionReceipt>) -> serde_json::Value {
+        
         let shortdata = tx
             .input.0.to_hex::<String>()
             .chars().take(8).collect::<String>();
+
+        let (to_link,to_label) = if let Some(to) = tx.to {             
+            (self.addr(&to),"")
+        } else if let Some(rcpt) = rcpt {
+            (self.addr_contract(&rcpt.contract_address.unwrap()),"")
+        } else {
+            (TextWithLink::blank(),"New contract")
+        };
 
         json!({
             "type"          : "EXT",
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid_short(&tx.hash),
             "from"          : self.addr(&tx.from),
-            "tonewcontract" : tx.to.is_none(),
-            "to"            : self.addr_or(&tx.to,""),
+            "to_link"       : to_link,
+            "to_label"      : to_label,
             "shortdata"     : shortdata,
             "value"         : self.ether(&tx.value)
         })
+    }
+
+    fn addr_contract(&self, addr: &Address) -> TextWithLink {
+        let mut twl = self.addr(&addr);
+        twl.text = format!("📄 {}",twl.text);
+        twl
+    }
+
+    fn addr_to(&self, to: &Option<Address>, contract: &Option<Address>) -> TextWithLink {
+        if let Some(to) = to {
+            self.addr(&to)
+        } else {
+            self.addr_contract(&contract.unwrap())
+        }
     }
 
     pub fn tx_itx(&self,tx: &Transaction, itx: &InternalTx) -> serde_json::Value {
@@ -133,8 +156,7 @@ impl<'a> HtmlRender<'a> {
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid_short(&tx.hash),
             "from"          : self.addr(&itx.from),
-            "tonewcontract" : itx.to.is_none(),
-            "to"            : self.addr_or(&itx.to,""),
+            "to"            : self.addr_to(&itx.to,&itx.contract),
             "shortdata"     : shortdata,
             "value"         : self.ether(&itx.value)
         })
@@ -147,8 +169,7 @@ impl<'a> HtmlRender<'a> {
 
         json!({
             "from"          : self.addr(&itx.from),
-            "tonewcontract" : itx.to.is_none(),
-            "to"            : self.addr_or(&itx.to,""),
+            "to"            : self.addr_to(&itx.to,&itx.contract),
             "shortdata"     : shortdata,
             "value"         : self.ether(&itx.value)
         })

@@ -18,7 +18,12 @@ pub fn html(
     if let Some(block) = reader.block_with_txs(blockno)? {
         let mut txs = Vec::new();
         for tx in &block.transactions {
-            txs.push(hr.tx(&tx));
+            if tx.to.is_some() {
+                txs.push(hr.tx(&tx,&None));
+            } else {
+                let (tx,rcpt) = reader.tx(tx.hash)?.unwrap();
+                txs.push(hr.tx(&tx,&rcpt));
+            }
         }
         let author = parse_clique_header(&block).unwrap();
         Ok(hb.render(

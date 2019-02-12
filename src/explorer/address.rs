@@ -35,12 +35,12 @@ pub fn html(
     if pg.from <= pg.to {
         let it = reader.db.iter_addr_tx_links(&addr).skip(pg.from as usize);
         for (txhash,itx_no) in it.take((pg.to-pg.from) as usize) {
-            let tx = reader.tx(txhash)?.unwrap().0;
+            let tx = reader.tx(txhash)?.unwrap();
             if itx_no == 0 {
-                txs.push(hr.tx(&tx));
+                txs.push(hr.tx(&tx.0,&tx.1));
             } else {
                 let itx = db.get_itx(&txhash,itx_no)?.unwrap();
-                txs.push(hr.tx_itx(&tx,&itx));
+                txs.push(hr.tx_itx(&tx.0,&itx))
             }
         }
     }
@@ -72,7 +72,10 @@ pub fn html(
                 })
             )?)            
         } else {
-            let solcversions =  contract::compilers(&cfg)?;
+            let mut solcversions =  contract::compilers(&cfg)?;
+            if cfg.solc_bypass {
+                solcversions.push(contract::ONLY_ABI.to_string());
+            }
             Ok(hb.render(
                 "address.handlebars",
                 &json!({

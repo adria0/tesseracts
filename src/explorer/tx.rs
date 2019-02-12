@@ -29,10 +29,15 @@ pub fn html(
 
             cumulative_gas_used = format!("{}", receipt.cumulative_gas_used.low_u64());
             gas_used = format!("{}", receipt.gas_used.unwrap().low_u64());
+            
+            if let Some(contract) = receipt.contract_address {
+                contract_address = hr.addr(&contract);
+            }
 
-            status = receipt
-                .status
-                .map_or_else(|| String::from(""), |s| format!("{}", s));
+            status = receipt.status.map_or(
+                "".to_string(),
+                |x| if x.as_u64() == 1 { "Success".to_string() } else { "Failed".to_string() }
+            );  
 
             for (_, log) in receipt.logs.into_iter().enumerate() {
                 

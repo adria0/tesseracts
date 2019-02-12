@@ -23,4 +23,3 @@ pub struct Contract {
     pub optimized: bool,
     pub constructor : Vec<u8>, 
 }
-

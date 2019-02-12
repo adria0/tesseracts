@@ -59,13 +59,23 @@ impl DbgInternalTxs {
         }
         if let Some(calls) = &self.calls { 
             for call in calls {
-                itxs.push(InternalTx{
-                    from     : hex_to_addr(&call.from)?,
-                    to       : opthex_to_addr(&call.to)?,
-                    contract : opthex_to_addr(&call.to)?, // TODO: fix internal contract creation
-                    input    : hex_to_vec(&call.input)?,
-                    value    : if call.value == "0x0" { zero_u256 } else { hex_to_u256(&call.value)? }
-                })
+                if call.op == "CREATE" || call.op == "CREATE2" {
+                    itxs.push(InternalTx{
+                        from     : hex_to_addr(&call.from)?,
+                        to       : None,
+                        contract : opthex_to_addr(&call.to)?,
+                        input    : hex_to_vec(&call.input)?,
+                        value    : if call.value == "0x0" { zero_u256 } else { hex_to_u256(&call.value)? }
+                    })
+                } else {
+                    itxs.push(InternalTx{
+                        from     : hex_to_addr(&call.from)?,
+                        to       : opthex_to_addr(&call.to)?,
+                        contract : None, 
+                        input    : hex_to_vec(&call.input)?,
+                        value    : if call.value == "0x0" { zero_u256 } else { hex_to_u256(&call.value)? }
+                    })
+                }
             }
         }
         Ok(itxs)

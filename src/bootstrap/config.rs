@@ -3,7 +3,7 @@ use std::io::prelude::*;
 
 use super::error::{Error,Result};
 
-const GETH_CLIQUE : &'static str = "geth_clique";
+const GETH_CLIQUE : & str = "geth_clique";
 
 #[derive(Debug, Deserialize)]
 pub struct NamedAddress {
@@ -20,6 +20,7 @@ pub struct Config {
     pub scan_start_block: Option<u64>,
     pub bind: String,
     pub solc_path : String,
+    pub solc_bypass : bool,
     pub named_address : Option<Vec<NamedAddress>>,    
 }
 
@@ -30,7 +31,7 @@ impl Config {
         let cfg : Config = toml::from_str(&contents)?;
 
         if cfg.web3_client != GETH_CLIQUE {
-            return Err(Error::InvalidOption(format!("only {} allowed in web3_client",GETH_CLIQUE)))
+            Err(Error::InvalidOption(format!("only {} allowed in web3_client",GETH_CLIQUE)))
         } else {
             Ok(cfg)
         }

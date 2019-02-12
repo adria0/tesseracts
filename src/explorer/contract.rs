@@ -15,6 +15,8 @@ use keccak_hash;
 use ethabi;
 use ethabi::param_type::{Writer, ParamType};
 
+pub static ONLY_ABI : &str = "abi-only";
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SolcContract {
     pub abi : String,
@@ -73,6 +75,12 @@ pub fn compilers(cfg : &Config) -> Result<Vec<String>,io::Error> {
     )
 }
 
+pub fn verify_abi(source: &str) -> Result<(),Error>{
+    ethabi::Contract::load(source.as_bytes())?;
+    Ok(())
+}
+
+
 pub fn compile_and_verify(
 
     cfg : &Config,
@@ -84,7 +92,7 @@ pub fn compile_and_verify(
 
 -> Result<String,Error> {
 
-    if compilers(&cfg)?.into_iter().find(|c| c==&compiler).is_none() {
+    if compilers(&cfg)?.into_iter().find(|c| c==compiler).is_none() {
         return Err(Error::CompilerNotFound);
     }
 
@@ -173,7 +181,7 @@ pub fn call_to_string(abistr : &str, input: &[u8]) -> Result<Vec<String>,Error> 
             let mut out = Vec::new();
             out.push(format!("function {}",&func.name));
 
-            if func.inputs.len() > 0 {
+            if !func.inputs.is_empty() {
                 let max_param_length = func.inputs.iter().map(|p| p.name.len()).max().unwrap();        
 
                 for (i,token) in ethabi::decode(&paramtypes, &input[4..])?.iter().enumerate() {
@@ -200,7 +208,7 @@ pub fn log_to_string(abistr : &str, txlog: web3::types::Log) -> Result<Vec<Strin
         let rawlog = ethabi::RawLog{topics: txlog.topics,data: txlog.data.0};
         let log = event.parse_log(rawlog)?;
 
-        if log.params.len() > 0 {
+        if !log.params.is_empty() {
             let max_param_length = log.params.iter().map(|p| p.name.len()).max().unwrap();        
 
             for param in log.params {

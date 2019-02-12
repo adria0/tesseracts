@@ -50,7 +50,7 @@ pub fn error_page(innerhtml: &str) -> String {
 }
 
 pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
-    let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>();
+    let page_no = request.get_param("p").unwrap_or_else(|| "0".to_string()).parse::<u64>();
     if let Ok(page_no) = page_no {
         Response::html(
             match home::html(&ge,page_no) {
@@ -64,15 +64,16 @@ pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
 }
 
 pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
-    let page_no = request.get_param("p").unwrap_or("0".to_string()).parse::<u64>().unwrap();
     
     if id == "neb" {
+        let page_no = request.get_param("p").unwrap_or_else(|| "0".to_string()).parse::<u64>().unwrap();
         let html = neb::html(&ge,page_no);
         Response::html(match html {
             Ok(html) => html,
             Err(err) => error_page(format!("Error: {:?}", err).as_str())
         })
     } else if let Some(id) = Id::from(&id) {
+        let page_no = request.get_param("p").unwrap_or_else(|| "0".to_string()).parse::<u64>().unwrap();
         let html = match id {
             Id::Addr(addr) => address::html(&ge,&addr,page_no),
             Id::Tx(txid) => tx::html(&ge,txid),
@@ -101,23 +102,25 @@ pub fn post_contract(
         let reader = BlockchainReader::new(&wc,&ge.db);
 
         let code = reader.current_code(&addr).expect("failed to read contract code").0;
-        
-        let abi = contract::compile_and_verify(&ge.cfg,
-            &contract_source,
-            &contract_name,
-            &contract_compiler,
-            contract_optimized,
-            &code
-        ).expect("cannot verify contract code");
 
-        // TODO remove to_string clones
         let contractentry = db::Contract{
             source : contract_source.to_string(),
             compiler : contract_compiler.to_string(),
             optimized: contract_optimized,
             name : contract_name.to_string(),
-            abi ,
             constructor : Vec::new(),
+            abi : if ge.cfg.solc_bypass && contract_compiler==contract::ONLY_ABI {
+                contract::verify_abi(contract_source).expect("cannot verify abi");
+                contract_source.to_string()
+            } else {
+                contract::compile_and_verify(&ge.cfg,
+                    &contract_source,
+                    &contract_name,
+                    &contract_compiler,
+                    contract_optimized,
+                    &code
+                ).expect("cannot verify contract code")
+            }
         };
         ge.db.set_contract(&addr,&contractentry).expect("cannot update db");
 

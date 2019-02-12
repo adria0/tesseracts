@@ -18,7 +18,7 @@ pub struct AppDB {
 
   Internal structure of the database
   ----------------------------------
-  Tx       <txhash>                                     cbor-encoded-transaction
+  Tx       <txhash>                                     cbor-encoded-transactionwithreceipt
   IntTx    <txhash> <count>                             cbor-encoded-{from,to,value,data}
   Receipt  <txhash>                                     cbor-encoded-receipt
   AddrLink <addr> <blockno> <txindex> <txhash> <inttx*> TxNewContract(contract_addr)
@@ -170,7 +170,7 @@ impl AppDB {
 
         self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?;
 
-        if block.transactions.len() > 0 {
+        if !block.transactions.is_empty() {
 
             // annotate a non-empty-block
             let mut neb_k = vec![RecordType::NonEmptyBlock as u8];
@@ -179,7 +179,7 @@ impl AppDB {
             self.db.put(neb_k.as_slice(), &[])?;
             
             // increment counter of non-empty-blocks
-            self.inc_u64(&vec![RecordType::NonEmptyBlockCount as u8])?;
+            self.inc_u64(&[RecordType::NonEmptyBlockCount as u8])?;
         }
         Ok(())
     }
@@ -291,11 +291,11 @@ impl AppDB {
 
     pub fn _dump(&self) -> Result<()> {
         let key = vec![RecordType::TxLink as u8];
-        let mut iter = self
+        let iter = self
             .db
             .iterator(IteratorMode::From(&key, Direction::Forward));
-        while let Some(kv) = iter.next() {
-            let (key,_value) = (&*(kv.0),&*(kv.1));
+        
+        for (key,_value) in iter {
             println!("**Key.iter {}",key.to_hex::<String>());
         }
 
