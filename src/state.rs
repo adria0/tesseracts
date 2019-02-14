@@ -6,12 +6,26 @@ use std::sync::atomic::AtomicBool;
 use bootstrap::{Config,load_handlebars_templates};
 use handlebars::Handlebars;
 use types::hex_to_addr;
+use web3::futures::Future;
 
-error_chain! {
-    foreign_links {
-        Fmt(rustc_hex::FromHexError);
-    }    
+#[derive(Debug)]
+pub enum Error {
+    Web3(web3::Error),
+    FromHex(rustc_hex::FromHexError),
 }
+
+impl From<web3::Error> for Error {
+    fn from(err: web3::Error) -> Self {
+        Error::Web3(err)
+    }
+}
+impl From<rustc_hex::FromHexError> for Error {
+    fn from(err: rustc_hex::FromHexError) -> Self {
+        Error::FromHex(err)
+    }
+}
+
+pub type Result<T> = std::result::Result<T,Error>;
 
 pub struct GlobalState {
     pub stop_signal: AtomicBool,
@@ -30,6 +44,11 @@ impl GlobalState {
 
     pub fn new(cfg: Config) -> Result<Self>  {
         
+        let transport = web3::transports::Http::new(cfg.web3_url.as_str())?;
+        let web3 = web3::Web3::new(transport.1);
+        let network_id = web3.net().version().wait()?;
+        info!("Network id is {}",network_id);
+
         let mut hb = Handlebars::new();
         load_handlebars_templates(&mut hb);
 
@@ -38,7 +57,7 @@ impl GlobalState {
 
         // load database & init if not
         let db = db::AppDB::open_default(
-            cfg.db_path.as_str(),
+            &format!("{}{}",cfg.db_path,network_id),
             db::Options {
                 store_itx : cfg.db_store_itx,
                 store_tx : cfg.db_store_tx,
@@ -46,7 +65,7 @@ impl GlobalState {
                 store_neb : cfg.db_store_neb,
             }
         ).expect("cannot open database");
-        
+
         if None == db.get_last_block().expect("error reading last block") {
             db.set_last_block(cfg.scan_start_block.unwrap_or(1))
                 .expect("error setting last block");
