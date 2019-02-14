@@ -30,11 +30,12 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<()>{
             "Adding block {}/{} ({}‰)...",
             next_block, until_block, progress
         );
+
         for tx in &block.transactions {
             // read transaction receipt
             let re = wc.web3.eth().transaction_receipt(tx.hash).wait()?.unwrap();
-
-            if gs.cfg.web3_internaltx {
+            
+            if gs.cfg.db_store_itx && gs.cfg.web3_itx {
                 // read internal transactions
                 let dbg : geth::Debug<_> = wc.web3.api();
                 let itxs = dbg.internal_txs(&tx).wait()?.parse()?;

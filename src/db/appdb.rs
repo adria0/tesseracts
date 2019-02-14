@@ -10,8 +10,16 @@ use super::iterators::*;
 
 use super::super::types::InternalTx;
 
+pub struct Options {
+    pub store_itx : bool,
+    pub store_tx : bool,
+    pub store_addr : bool,
+    pub store_neb : bool,
+}
+
 pub struct AppDB {
     db: DB,
+    opt: Options,
 }
 
 /*
@@ -45,8 +53,9 @@ pub struct AppDB {
 */
 
 impl AppDB {
-    pub fn open_default(path: &str) -> Result<AppDB> {
-        Ok(DB::open_default(path).map(|x| AppDB { db: x })?)
+
+    pub fn open_default(path: &str, opt: Options) -> Result<AppDB> {
+        Ok(DB::open_default(path).map(|x| AppDB{ opt, db: x })?)
     }
 
     pub fn add_addrtx_link(&self, addr: &Address, tx: &Transaction, inttxno : u64) -> Result<()> {        
@@ -109,26 +118,33 @@ impl AppDB {
             (None,Some(_)) => {},
             (_,_) => return Err(Error::Precondition("push_tx"))
         }
-        
-        // store tx
-        let mut tx_k = vec![RecordType::Tx as u8];
-        tx_k.extend_from_slice(&tx.hash);
-        self.db
-            .put(tx_k.as_slice(), to_vec(tx).unwrap().as_slice())?;
 
-        // store receipt
-        let mut r_k = vec![RecordType::Receipt as u8];
-        r_k.extend_from_slice(&tx.hash);
-        self.db.put(r_k.as_slice(), to_vec(tr).unwrap().as_slice())?;
-        
-        // TxLinks
-        self.add_addrtx_links(&tx,tx.from,tx.to,tr.contract_address,0)?;
-        
-        if let Some(itxs) = itxs {
-            // InternalTxs
-            for (i, itx) in itxs.into_iter().enumerate() {
-                self.add_itx(&tx,itx,i as u64 + 1)?;
+        if self.opt.store_tx {
+
+            // store tx
+            let mut tx_k = vec![RecordType::Tx as u8];
+            tx_k.extend_from_slice(&tx.hash);
+            self.db
+                .put(tx_k.as_slice(), to_vec(tx).unwrap().as_slice())?;
+
+            // store receipt
+            let mut r_k = vec![RecordType::Receipt as u8];
+            r_k.extend_from_slice(&tx.hash);
+            self.db.put(r_k.as_slice(), to_vec(tr).unwrap().as_slice())?;
+
+            if self.opt.store_itx {
+                if let Some(itxs) = itxs {
+                    // InternalTxs
+                    for (i, itx) in itxs.into_iter().enumerate() {
+                        self.add_itx(&tx,itx,i as u64 + 1)?;
+                    }
+                }
             }
+        }
+
+        if self.opt.store_addr {
+            // TxLinks
+            self.add_addrtx_links(&tx,tx.from,tx.to,tr.contract_address,0)?;
         }
 
         Ok(())
@@ -165,15 +181,16 @@ impl AppDB {
 
     pub fn push_block(&self, block: &Block<H256>) -> Result<()> {
         
-        // add the block
-        let mut b_k = vec![RecordType::Block as u8];
-        let block_no = u64_to_le(block.number.unwrap().low_u64());
-        b_k.extend_from_slice(&block_no);
+        if self.opt.store_tx {
+            // add the block
+            let mut b_k = vec![RecordType::Block as u8];
+            let block_no = u64_to_le(block.number.unwrap().low_u64());
+            b_k.extend_from_slice(&block_no);
 
-        self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?;
+            self.db.put(b_k.as_slice(), to_vec(block)?.as_slice())?;
+        }
 
-        if !block.transactions.is_empty() {
-
+        if self.opt.store_neb && !block.transactions.is_empty() {
             // annotate a non-empty-block
             let mut neb_k = vec![RecordType::NonEmptyBlock as u8];
             let block_no_rev = u64_to_le(std::u64::MAX - block.number.unwrap().low_u64());

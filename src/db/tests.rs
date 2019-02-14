@@ -17,8 +17,16 @@ mod tests {
 
         let mut tmpfile = std::env::temp_dir();
         tmpfile.push(chars);
-        AppDB::open_default(tmpfile.as_os_str().to_str().expect("bad OS filename"))
-            .expect("unable to create db")
+
+        AppDB::open_default(
+            tmpfile.as_os_str().to_str().expect("bad OS filename"),
+            Options {
+                store_itx  : true,
+                store_tx   : true,
+                store_addr : true,
+                store_neb  : true,            
+            }
+        ).expect("unable to create db")
     }
 
     struct TestVars {

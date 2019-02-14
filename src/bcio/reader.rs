@@ -94,7 +94,7 @@ impl<'a> BlockchainReader<'a> {
         tx: &Transaction
     ) -> Result<Vec<InternalTx>> {
         let mut itxs : Vec<InternalTx> = self.ge.db.iter_itxs(&tx.hash).map(|(_,t)| t).collect();
-        if itxs.len() == 0 && self.ge.cfg.web3_internaltx {
+        if itxs.len() == 0 && self.ge.cfg.web3_itx {
             let dbg : geth::Debug<_> = self.wc.web3.api();
             itxs = dbg.internal_txs(&tx).wait()?.parse()?;
         }

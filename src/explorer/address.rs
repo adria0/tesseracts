@@ -6,7 +6,7 @@ use super::html::*;
 use super::super::bcio::BlockchainReader;
 use super::super::state::GlobalState;
 use super::contract;
-use super::paginate;
+use super::utils;
 
 pub fn html(
     ge: &GlobalState,
@@ -30,7 +30,7 @@ pub fn html(
     } else {
         count_addr_tx_links
     };
-    let pg = paginate::paginate(limit,20,page_no);
+    let pg = utils::paginate(limit,20,page_no);
     if pg.from <= pg.to {
         let it = db.iter_addr_tx_links(&addr).skip(pg.from as usize);
         for (txhash,itx_no) in it.take((pg.to-pg.from) as usize) {

@@ -161,17 +161,4 @@ impl<'a> HtmlRender<'a> {
         })
     }
 
-    pub fn itx(&self,itx: &InternalTx) -> serde_json::Value {
-        let shortdata = itx
-            .input.to_hex::<String>()
-            .chars().take(8).collect::<String>();
-
-        json!({
-            "from"          : self.addr(&itx.from),
-            "to"            : self.addr_to(&itx.to,&itx.contract),
-            "shortdata"     : shortdata,
-            "value"         : self.ether(&itx.value)
-        })
-    }
-
 }

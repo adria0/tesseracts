@@ -1,8 +1,7 @@
 use super::error::{Error,Result};
 use super::html::HtmlRender;
-use super::paginate;
+use super::utils;
 
-use super::super::geth::parse_clique_header;
 use super::super::state::GlobalState;
 use super::super::bcio::BlockchainReader;
 
@@ -24,13 +23,13 @@ pub fn html(
     } else {
         count_non_empty_blocks
     };
-    let pg = paginate::paginate(limit,20,page_no);
+    let pg = utils::paginate(limit,20,page_no);
 
     if pg.from <= pg.to {
         let it = db.iter_non_empty_blocks()?.skip(pg.from as usize);
         for n in it.take((pg.to-pg.from) as usize) {
             if let Some(block) = reader.block(n)? {
-                let author = parse_clique_header(&block).unwrap();
+                let author = utils::author(&ge.cfg,&block);
                 blocks.push(json!({
                     "block"     : hr.blockno(n),
                     "author"    : hr.addr(&author),

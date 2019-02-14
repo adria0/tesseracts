@@ -1,8 +1,7 @@
 use super::error::Error;
 use super::html::HtmlRender;
-use super::paginate;
+use super::utils;
 
-use super::super::geth::parse_clique_header;
 use super::super::bcio::BlockchainReader;
 use super::super::state::GlobalState;
 
@@ -19,11 +18,11 @@ pub fn html(
     let last_blockno = reader.current_block_number()?;
     let mut blocks = Vec::new();
 
-    let pg = paginate::paginate(last_blockno,20,page_no);
+    let pg = utils::paginate(last_blockno,20,page_no);
     for n in pg.from..pg.to {
         let block_no = last_blockno - n;
         if let Some(block) = reader.block(block_no)? {
-            let author = parse_clique_header(&block).unwrap();
+            let author = utils::author(&ge.cfg,&block);
             blocks.push(json!({
                 "block"     : hr.blockno(block_no),
                 "tx_count"  : block.transactions.len(),

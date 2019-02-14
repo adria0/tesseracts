@@ -1,4 +1,4 @@
-use db::AppDB;
+use db;
 
 use std::collections::HashMap;
 use web3::types::{Address};
@@ -15,7 +15,7 @@ error_chain! {
 
 pub struct GlobalState {
     pub stop_signal: AtomicBool,
-    pub db: AppDB,
+    pub db: db::AppDB,
     pub cfg: Config,
     pub hb: Handlebars,
     pub named_address : HashMap<Address,String>,
@@ -37,7 +37,16 @@ impl GlobalState {
         let stop_signal = AtomicBool::new(false);
 
         // load database & init if not
-        let db = AppDB::open_default(cfg.db_path.as_str()).expect("cannot open database");
+        let db = db::AppDB::open_default(
+            cfg.db_path.as_str(),
+            db::Options {
+                store_itx : cfg.db_store_itx,
+                store_tx : cfg.db_store_tx,
+                store_addr : cfg.db_store_addr,
+                store_neb : cfg.db_store_neb,
+            }
+        ).expect("cannot open database");
+        
         if None == db.get_last_block().expect("error reading last block") {
             db.set_last_block(cfg.scan_start_block.unwrap_or(1))
                 .expect("error setting last block");

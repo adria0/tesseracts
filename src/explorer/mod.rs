@@ -6,9 +6,9 @@ mod error;
 mod home;
 mod html;
 mod tx;
-mod paginate;
 mod neb;
 mod contract;
+mod utils;
 
 use super::state::GlobalState;
 use super::bcio::BlockchainReader;

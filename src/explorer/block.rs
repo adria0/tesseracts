@@ -1,9 +1,9 @@
 use super::error::*;
 use super::html::*;
+use super::utils;
 
 use super::super::bcio::BlockchainReader;
 use super::super::state::GlobalState;
-use super::super::geth::parse_clique_header;
 
 pub fn html(
     ge: &GlobalState,
@@ -24,7 +24,7 @@ pub fn html(
                 txs.push(hr.tx(&tx,&rcpt));
             }
         }
-        let author = parse_clique_header(&block).unwrap();
+        let author = utils::author(&ge.cfg,&block);
         let rawextra = hr.bytes(&block.extra_data.0,32);
 
         Ok(hb.render(
