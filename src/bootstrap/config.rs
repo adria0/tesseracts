@@ -5,6 +5,7 @@ use super::error::{Error,Result};
 
 pub const GETH_CLIQUE : & str = "geth_clique";
 pub const GETH_POW    : & str = "geth_pow";
+pub const GETH_AUTO   : & str = "geth";
 
 #[derive(Debug, Deserialize)]
 pub struct NamedAddress {
@@ -37,7 +38,8 @@ impl Config {
         let cfg : Config = toml::from_str(&contents)?;
 
         if cfg.web3_client != GETH_CLIQUE
-           && cfg.web3_client != GETH_POW {
+           && cfg.web3_client != GETH_POW
+           && cfg.web3_client != GETH_AUTO {
             Err(Error::InvalidOption(format!("only {} allowed in web3_client",GETH_CLIQUE)))
         } else {
             Ok(cfg)

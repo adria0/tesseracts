@@ -1,6 +1,6 @@
-use web3::types::{Address,Block};
+use web3::types::{Address,Block,H160};
 
-use super::super::bootstrap::{Config,GETH_CLIQUE};
+use super::super::bootstrap::{Config,GETH_CLIQUE,GETH_POW,GETH_AUTO};
 use super::super::geth::parse_clique_header;
 
 #[derive(Debug)]
@@ -32,9 +32,22 @@ pub fn paginate( max : u64, page_size : u64, page_no : u64 ) -> Pagination {
 }
 
 pub fn author<T>(cfg: &Config, block: &Block<T>) -> Address {
-    if cfg.web3_client == GETH_CLIQUE {       
+    
+    let client = if &cfg.web3_client == GETH_AUTO {
+        if block.author == H160::default() {
+            GETH_CLIQUE
+        } else {
+            GETH_POW
+        }
+    } else {
+        &cfg.web3_client
+    };
+    
+    if client == GETH_CLIQUE {       
         parse_clique_header(&block).unwrap()
     } else {
         block.author
     }
+
+    
 }
