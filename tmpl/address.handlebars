@@ -46,8 +46,42 @@
         {{/each}}
     </tbody>
 </table>
+
 {{ #if hascode }}
-{{ #if hascontract }}
+{{ #if can_set_source }}
+
+<script>
+function update_solcoptions() {
+    const hide = $('#contract_compiler').val() === "abi-only";
+    if (hide) {
+        $('#solcoptions').hide();
+    } else {
+        $('#solcoptions').show();
+    }
+}
+$(function() {    
+    $('#contract_compiler').change(function(){
+        update_solcoptions();
+    });
+    update_solcoptions();
+});
+</script>
+
+<h5 class="title">Set contract source</h5>
+<form action="/{{ address }}/contract" method="post">
+    <textarea class="code" name="contract_source" rows="20" cols="105">
+{{ contract_source }}</textarea><br>
+    Compiler version <select id="contract_compiler" name="contract_compiler">
+        {{#each solcversions}}<option>{{this}}</option>
+        {{/each}}
+    </select>&nbsp;<button>Upload</button><br>
+    <div id=solcoptions>
+        Contract name <input type="text" name="contract_name"></input>
+        <input type="checkbox" name="contract_optimized"> Optimized</input><br>
+    </div>
+</form>
+
+{{ else }}
 
 <h5 class="title">Contract source</h5>
     Compiler version {{ contract_compiler }}, optimized {{ contract_optimized }}<br>
@@ -55,26 +89,9 @@
     <textarea rows="20" cols="100" disabled=true>
 {{ contract_source }}</textarea><br>
 
-<br>
-
-{{ else }}
-
-<h5 class="title">Upload contract source</h5>
-<form action="/{{ address }}/contract" method="post">
-    <textarea class="code" name="contract_source" rows="20" cols="105">
-{{ contratsource }}</textarea><br>
-    Compiler version <select name="contract_compiler">
-        {{#each solcversions}}<option>{{this}}</option>
-        {{/each}}
-    </select>
-    <input type="checkbox" name="contract_optimized"> Optimized</input><br>
-    Contract name <input type="text" name="contract_name"></input>
-    <button>Upload</button>
-</form><br>
-
 {{ /if }}
 
-
+<br>
 <h5 class="title">Raw EVM Code</h5>
 <textarea class="code" rows="20" cols="105" disabled="true">
 {{#each rawcode}}{{this}}

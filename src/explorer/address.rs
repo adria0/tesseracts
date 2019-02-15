@@ -30,6 +30,7 @@ pub fn html(
     } else {
         count_addr_tx_links
     };
+    
     let pg = utils::paginate(limit,20,page_no);
     if pg.from <= pg.to {
         let it = db.iter_addr_tx_links(&addr).skip(pg.from as usize);
@@ -43,11 +44,21 @@ pub fn html(
             }
         }
     }
+
     if !code.0.is_empty() {
 
+        let mut solcversions =  contract::compilers(&cfg)?;
+        if cfg.solc_bypass {
+            solcversions.push(contract::ONLY_ABI.to_string());
+        }
+
         let rawcode = hr.bytes(&code.0,50);
-        
-        if let Some(contract) = db.get_contract(addr)? {
+        let contract = db.get_contract(addr)?;
+
+        if let Some(contract) = contract {
+            
+            let can_set_source = contract.compiler == contract::ONLY_ABI;
+
             Ok(hb.render(
                 "address.handlebars",
                 &json!({
@@ -61,19 +72,18 @@ pub fn html(
                     "prev_page": pg.prev_page.unwrap_or(0),                    
                     "hascode" : true,
                     "rawcode" : rawcode,
-                    "hascontract" : true,
+                    "can_set_source" : can_set_source,
+                    "solcversions" : solcversions,
                     "contract_source" : contract.source,
                     "contract_name" : contract.name,
                     "contract_abi" : contract.abi,
                     "contract_compiler" : contract.compiler,
                     "contract_optimized": contract.optimized
                 })
-            )?)            
+            )?)
+        
         } else {
-            let mut solcversions =  contract::compilers(&cfg)?;
-            if cfg.solc_bypass {
-                solcversions.push(contract::ONLY_ABI.to_string());
-            }
+
             Ok(hb.render(
                 "address.handlebars",
                 &json!({
@@ -87,12 +97,15 @@ pub fn html(
                     "prev_page": pg.prev_page.unwrap_or(0),                    
                     "hascode" : true,
                     "rawcode" : rawcode,
-                    "hascontract" : false,
+                    "can_set_source" : true,
                     "solcversions" : solcversions,
                 })
             )?)
+
         }
+
     } else {    
+
         Ok(hb.render(
             "address.handlebars",
             &json!({
