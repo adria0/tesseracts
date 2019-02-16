@@ -71,9 +71,9 @@ impl<'a> HtmlRender<'a> {
             .collect()
     }
 
-    pub fn txid_short(&self, txid : &H256) -> TextWithLink {
+    pub fn txid(&self, txid : &H256) -> TextWithLink {
         TextWithLink::new_link(
-            format!("{:x}", txid).chars().take(9).collect::<String>(),
+            format!("{:x}", txid),
             format!("/0x{:x}", txid),
         )
     }
@@ -121,7 +121,7 @@ impl<'a> HtmlRender<'a> {
         json!({
             "type"          : "EXT",
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
-            "tx"            : self.txid_short(&tx.hash),
+            "tx"            : self.txid(&tx.hash),
             "from"          : self.addr(&tx.from),
             "to_link"       : to_link,
             "to_label"      : to_label,
@@ -153,7 +153,7 @@ impl<'a> HtmlRender<'a> {
         json!({
             "type"          : "int",
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
-            "tx"            : self.txid_short(&tx.hash),
+            "tx"            : self.txid(&tx.hash),
             "from"          : self.addr(&itx.from),
             "to_link"       : self.addr_to(&itx.to,&itx.contract),
             "shortdata"     : shortdata,

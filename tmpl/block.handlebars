@@ -1,7 +1,7 @@
 {{ > header.handlebars }}
 
 <h6 class="title">Block #{{ blockno }}</h6>
-<table class="u-full-width">
+<table class="pure-table">
     <tbody>
         <tr>
             <td>Parent hash</td>
@@ -51,7 +51,7 @@
     </tbody>
 </table>
 <h5 class="title">Transactions</h5>
-<table>
+<table class="pure-table">
     <thead>
         <th>Tx</th>
         <th>From</th>
@@ -62,11 +62,11 @@
     <tbody>
         {{#each txs}}
         <tr>
-            <td><a href={{tx.link}}>{{tx.text}}</td>
-            <td><a href={{from.link}}>{{from.text}}</a></td>
-            <td nowrap>{{to_label}}<a href={{to_link.link}}>{{to_link.text}}</td>
-            <td>{{value.text}}</td>
-            <td>{{shortdata}}</td>
+            <td class="text-truncate type-tx"><a href={{tx.link}}>{{tx.text}}</td>
+            <td class="text-truncate type-addr"><a href={{from.link}}>{{from.text}}</a></td>
+            <td class="text-truncate type-addr">{{to_label}}<a href={{to_link.link}}>{{to_link.text}}</td>
+            <td class="text-truncate type-value">{{value.text}}</td>
+            <td class="text-truncate type-data">{{shortdata}}</td>
         </tr>
         {{/each}}
     </tbody>

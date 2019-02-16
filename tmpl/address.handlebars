@@ -1,7 +1,7 @@
 {{ > header.handlebars }}
 
 <h6 class="title">Address {{ address }}</h6>
-<table class="u-full-width">
+<table class="pure-table">
     <tbody>
         <tr>
             <td>Balance</td>
@@ -22,7 +22,7 @@
 <i class="fa fa-chevron-circle-right disabled" aria-hidden="true"></i>
 {{/if}}
 </h5>
-<table>
+<table class="pure-table">
     <thead>
         <th>Block</th>
         <th>Tx</th>
@@ -35,13 +35,13 @@
     <tbody>
         {{#each txs}}
         <tr>
-            <td><a href={{blockno.link}}>{{blockno.text}}</td>
-            <td><a href={{tx.link}}>{{tx.text}}</td>
+            <td class="text-truncate type-block"><a href={{blockno.link}}>{{blockno.text}}</td>
+            <td class="text-truncate type-tx"><a href={{tx.link}}>{{tx.text}}</td>
             <td>{{type}}</td>
-            <td nowrap><a href={{from.link}}>{{from.text}}</a></td>
-            <td nowrap>{{to_label.link}}<a href={{to_link.link}}>{{to_link.text}}</a></td>
-            <td>{{value.text}}</td>
-            <td>{{shortdata}}</td>
+            <td class="text-truncate type-addr"><a href={{from.link}}>{{from.text}}</a></td>
+            <td class="text-truncate type-addr">{{to_label.link}}<a href={{to_link.link}}>{{to_link.text}}</a></td>
+            <td class="text-truncate type-value">{{value.text}}</td>
+            <td class="text-truncate type-data">{{shortdata}}</td>
         </tr>
         {{/each}}
     </tbody>
@@ -68,17 +68,21 @@ $(function() {
 </script>
 
 <h5 class="title">Set contract source</h5>
-<form action="/{{ address }}/contract" method="post">
+<form class="pure-form  pure-form-stacked" action="/{{ address }}/contract" method="post">
+    <label for="contract_source">Solidity or ABI</label>
     <textarea class="code" name="contract_source" rows="20" cols="105">
-{{ contract_source }}</textarea><br>
-    Compiler version <select id="contract_compiler" name="contract_compiler">
+{{ contract_source }}</textarea>
+    <label for="contract_compiler">Source type</label>
+    <select id="contract_compiler" name="contract_compiler">
         {{#each solcversions}}<option>{{this}}</option>
         {{/each}}
-    </select>&nbsp;<button>Upload</button><br>
+    </select>
     <div id=solcoptions>
-        Contract name <input type="text" name="contract_name"></input>
+        <label for="contract_name">Contract name</label>
+        <input type="text" name="contract_name"></input>
         <input type="checkbox" name="contract_optimized"> Optimized</input><br>
     </div>
+    <button class="pure-button pure-button-primary">Upload</button>
 </form>
 
 {{ else }}

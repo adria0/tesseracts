@@ -1,19 +1,17 @@
 <html>
 <link href="https://fonts.googleapis.com/css?family=Major+Mono+Display" rel="stylesheet"> 
-<link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"
-    integrity="sha256-2YQRJMXD7pIAPHiXr0s+vlRWA7GYJEK0ARns7k2sbHY="
-    crossorigin="anonymous"
-/>
+<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script
     src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
     integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
     crossorigin="anonymous"></script>
-
+<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
 <link rel="stylesheet"
     href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css"
 />
 <style>
+  
 a, a:active, a:focus {
     color: #3498db;
     text-decoration-line: none;
@@ -22,27 +20,38 @@ a:hover {
     color: #3498db;
     text-decoration-line: underline;
 }
-td, th {
-    padding: 5px 5px;
-} 
 .code {
     font-size: 100%;
     font-family:monospace;
     line-height: 1.2;
     color: #222;
 }
-h2 {
-    font-size: 3.6rem;
+
+td {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
 }
+
+h5 {
+    margin-block-start: 1.36em;
+    margin-block-end: 0.5em;
+    font-size: 1rem;
+    color: #777;
+}
+
 h6 {
+    margin-block-start: 0em;
+    margin-block-end: 0.5em;
+    font-size: 1rem;
     color: #777;
 }
 textarea {
     height: 200px;
 }
 .disabled {
-    color: #777;
+    color: #fff;
 }
+
 .search {
   width: 100%;
   position: relative;
@@ -90,21 +99,40 @@ textarea {
     font-family: 'Major Mono Display', monospace;
 }
 
+.text-truncate {
+  overflow: hidden  !important;
+  text-overflow: ellipsis  !important;
+  white-space: nowrap  !important;
+}
+
+.type-tx {
+  max-width: 100;  
+}
+
+.type-addr {
+  max-width: 200;
+}
+
+
+
+
+
 </style>
 <body>
-<div class="container">
 
-<div class="row">
-  <div class="one-half column">
+<div class="pure-g">
+  <div class="pure-u-1-12"></div>
+  <div class="pure-u-5-12">
     <h2 class="title majorfont">
         <a href="/">tesseracts</a>
     </h2>
   </div>
-  <div class="one-half column">
+  <div class="pure-u-5-12">
     <div class="search">
     <input class="searchTerm" placeholder="Search by {Address / Txhash / Block} or neb " /><input class="searchButton" type="button" />
     </div>    
   </div>
+  <div class="pure-u-1-12"></div>
 </div>
 
 <script>
@@ -117,3 +145,7 @@ $('.searchButton').on('click',function(){
     window.location.href = "/"+$('.searchTerm').val()
 });    
 </script>
+
+<div class="pure-g">
+  <div class="pure-u-1-12"></div>
+  <div class="pure-u-11-12">

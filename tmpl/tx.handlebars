@@ -1,7 +1,7 @@
 {{ > header.handlebars }}
 
 <h6 class="title">Tx {{ txhash }}</h6>
-<table class="u-full-width">
+<table class="pure-table">
     <tbody>
         <tr>
             <td>Status</td>
@@ -60,7 +60,7 @@
 
 <h5 class="title">Logs</h5>
 {{#each logs}}
-&nbsp;&nbsp;- <a href={{address.link}}>{{address.text}}</a>
+<a href={{address.link}}>{{address.text}}</a>
 <pre class="code">
 {{#each txt}}{{this}}
 {{/each}}
@@ -68,7 +68,7 @@
 {{/each}}
 
 <h5 class="title">Internal transactions</h5>
-<table>
+<table class="pure-table">
     <thead>
         <th>From</th>
         <th>To</th>
@@ -78,10 +78,10 @@
     <tbody>
         {{#each itxs}}
         <tr>
-            <td><a href={{from.link}}>{{from.text}}</a></td>
-            <td nowrap><a href={{to_link.link}}>{{to_link.text}}</td>
-            <td>{{value.text}}</td>
-            <td>{{shortdata}}</td>
+            <td class="text-truncate type-addr"><a href={{from.link}}>{{from.text}}</a></td>
+            <td class="text-truncate type-addr"><a href={{to_link.link}}>{{to_link.text}}</td>
+            <td class="text-truncate type-value">{{value.text}}</td>
+            <td class="text-truncate type-data">{{shortdata}}</td>
         </tr>
         {{/each}}
     </tbody>
