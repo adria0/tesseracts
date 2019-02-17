@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/adriamb/tesseracts.svg?branch=master)](https://travis-ci.org/adriamb/tesseracts)
+[![Docker build](https://img.shields.io/docker/automated/adriamb/tesseracts.svg?style=flat)](https://cloud.docker.com/repository/docker/adriamb/tesseracts)
 
 # tesseracts
 A minimalistic block explorer initially created to learn rust.
