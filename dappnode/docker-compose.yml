@@ -1,0 +1,9 @@
+version: '3.4'
+services:
+    tesseracts.public.dappnode.eth:
+        image: 'tesseracts.public.dappnode.eth:0.1.0'
+        build: ./build
+        volumes:
+            - /data
+        ports:
+            - '80:80'

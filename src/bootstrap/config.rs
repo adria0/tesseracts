@@ -26,7 +26,7 @@ pub struct Config {
     pub scan: bool,
     pub scan_start_block: Option<u64>,
     pub bind: String,
-    pub solc_path : String,
+    pub solc_path : Option<String>,
     pub solc_bypass : bool,
     pub named_address : Option<Vec<NamedAddress>>,    
 }

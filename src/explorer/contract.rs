@@ -67,12 +67,16 @@ impl From<serde_json::Error> for Error {
 }
 
 pub fn compilers(cfg : &Config) -> Result<Vec<String>,io::Error> {
-    Ok(fs::read_dir(&cfg.solc_path)?
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().unwrap().is_file())
-        .map(|entry| entry.file_name().into_string().unwrap())
-        .collect()
-    )
+    if let Some(path) = &cfg.solc_path {
+        Ok(fs::read_dir(path)?
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().unwrap().is_file())
+            .map(|entry| entry.file_name().into_string().unwrap())
+            .collect()
+        )
+    } else {
+        Ok(Vec::new())
+    }
 }
 
 pub fn verify_abi(source: &str) -> Result<(),Error>{
@@ -118,8 +122,9 @@ pub fn compile_and_verify(
         vec![&input,"-o",&tmp_dir,"--combined-json","abi,bin-runtime","--optimize-runs","200"]
     };
 
-    let cmdoutput = Command::new(format!("{}/{}",cfg.solc_path,compiler))
-            .args(args).output()?;
+    let cmdoutput = Command::new(
+        format!("{}/{}",&cfg.solc_path.clone().unwrap(),compiler)
+    ).args(args).output()?;
     
     println!("stdout: {}", String::from_utf8_lossy(&cmdoutput.stdout));
     println!("stderr: {}", String::from_utf8_lossy(&cmdoutput.stderr));

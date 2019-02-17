@@ -11,8 +11,6 @@ extern crate rouille;
 #[macro_use]
 extern crate log;
 extern crate structopt;
-#[macro_use]
-extern crate error_chain;
 
 extern crate stderrlog;
 extern crate ctrlc;

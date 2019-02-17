@@ -19,6 +19,13 @@ This is an experimantal block explorer written in rust. At this moment it comes 
 - [X] Internal transactions
 - [X] Parse clique block headers
 - [X] Named accounts
+- [ ] Download receipts in batch
+- [ ] Forward-backwards block scanning 
+- [ ] Set postly URL... `/tx` `/addr` `/block`
+- [ ] Automatic ERC20 parsing `/erc20`
+- [ ] Suport for user configuration
+  - [ ] Naming addresses support
+  - [ ] Specify token address
 
 ## Set up
 
@@ -29,8 +36,31 @@ To run tesseracts, you need to install rust nightly, so first install rust with 
 create a .toml config file (see `cfg.example.toml`)
 
 ```toml
+
+# database ----------------------------------------
+
 # where the database is located
 db_path          = 
+
+# true|false if we want to scan blocks and save it into db
+scan             =  
+
+# the starting block to start to retrieve blocks (only iff scan==true)
+scan_start_block = 
+
+# store with tx are contained in addr? (bool)
+db_store_addr    = 
+
+# store the transactions and receipts? (bool)
+db_store_tx      = 
+
+# store internal transactions? (bool)
+db_store_itx     = 
+
+# store list of last non empty blocks? (bool)
+db_store_neb     = 
+
+# web3 ----------------------------------------------
 
 # web3 json-rpc port, e.g. http://localhost:8545
 web3_client      = "geth_clique"
@@ -40,17 +70,17 @@ web3_url         =
 # it requieres geth with --syncmode=full --gcmode=archive and --rpcapi debug 
 web3_internaltx  = 
 
-# true|false if we want to scan blocks 
-scan             =  
-
-# the starting block to start to retrieve blocks (only iff scan==true)
-scan_start_block = 
+# compiler ------------------------------------------
 
 # the path where solc binaries are stored
 solc_path = 
 
+# server --------------------------------------------
+
 # http server binding (e.g. "0.0.0.0:8000")
 bind         = 
+
+# names ---------------------------------------------
 
 # multiple named_address entries can be added to name accouts
 [[named_address]]
