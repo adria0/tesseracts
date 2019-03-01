@@ -1,13 +1,21 @@
+![](https://www.rust-lang.org/logos/rust-logo-32x32-blk.png)
 [![Build Status](https://travis-ci.org/adriamb/tesseracts.svg?branch=master)](https://travis-ci.org/adriamb/tesseracts)
 [![Docker build](https://img.shields.io/docker/automated/adriamb/tesseracts.svg?style=flat)](https://cloud.docker.com/repository/docker/adriamb/tesseracts)
 
-# tesseracts
+# Tesseracts
 A minimalistic block explorer initially created to learn rust.
+
+This block explorer has been created as a rust self-learning project to give support to [nou.network](https://nou.network), a small beta PoA for social projects with nodes from university teachers ([UPC](https://www.upc.edu), [UAB](https://www.uab.edu), [UOC](https://www.uoc.edu), [UdG](https://www.udg.edu), [UIB](https://www.uib.es/es)), [GuifiNet](https://guifi.net/en) and two members the [White Hat Group](https://giveth.io/#heronav).
+
+## Disclaimer
+
+This is an experimental block explorer, my first attempt to write something in rust, and expect to find newbie rustacean antipatterns here. Nonetheless it seems that it works as expected.
+
+## Features
 
 ![screenshot](https://raw.githubusercontent.com/adriamb/tesseracts/master/extra/screenshot.png)
 
-
-This is an experimantal block explorer written in rust. At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
+At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
 
 - [X] Last blocks page
 - [X] Show block
