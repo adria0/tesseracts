@@ -5,7 +5,7 @@
 # Tesseracts
 A minimalistic block explorer initially created to learn rust.
 
-This block explorer has been created as a rust self-learning project to give support to [nou.network](https://nou.network), a small beta PoA for social projects with nodes from university teachers ([UPC](https://www.upc.edu), [UAB](https://www.uab.edu), [UOC](https://www.uoc.edu), [UdG](https://www.udg.edu), [UIB](https://www.uib.es/es)), [GuifiNet](https://guifi.net/en) and two members the [White Hat Group](https://giveth.io/#heronav).
+This block explorer has been created as a rust self-learning project to give support to [nou.network](https://nou.network), a small beta PoA for social projects with nodes from university teachers ([UPC](https://www.upc.edu), [UAB](https://www.uab.edu), [UOC](https://www.uoc.edu), [UdG](https://www.udg.edu), [UIB](https://www.uib.es/es)), [GuifiNet](https://guifi.net/en) and members the [White Hat Group](https://giveth.io/#heronav).
 
 ## Disclaimer
 
