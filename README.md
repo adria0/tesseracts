@@ -4,6 +4,9 @@
 # tesseracts
 A minimalistic block explorer initially created to learn rust.
 
+![screenshot](https://raw.githubusercontent.com/adriamb/tesseracts/master/extra/screenshot.png)
+
+
 This is an experimantal block explorer written in rust. At this moment it comes with the folowing features (checked items) and there's a roadmap for the next ones (unchecked items)
 
 - [X] Last blocks page
