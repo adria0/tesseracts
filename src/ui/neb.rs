@@ -3,7 +3,7 @@ use super::html::HtmlRender;
 use super::utils;
 
 use super::super::state::GlobalState;
-use super::super::bcio::BlockchainReader;
+use super::super::eth::BlockchainReader;
 
 pub fn html(
     ge: &GlobalState,

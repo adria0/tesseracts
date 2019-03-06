@@ -1,7 +1,7 @@
 use web3::types::{Address,Block,H160};
 
 use super::super::bootstrap::{Config,GETH_CLIQUE,GETH_POW,GETH_AUTO};
-use super::super::geth::parse_clique_header;
+use super::super::eth::geth::clique;
 
 #[derive(Debug)]
 pub struct Pagination {
@@ -44,7 +44,7 @@ pub fn author<T>(cfg: &Config, block: &Block<T>) -> Address {
     };
     
     if client == GETH_CLIQUE {       
-        parse_clique_header(&block).unwrap()
+        clique::parse_clique_header(&block).unwrap()
     } else {
         block.author
     }

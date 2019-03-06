@@ -3,8 +3,11 @@ use rustc_hex::ToHex;
 use serde_derive::Serialize;
 use chrono::prelude::*;
 
-use super::super::types::InternalTx;
+use super::error::Result;
+
+use super::super::eth::types::InternalTx;
 use super::super::state::GlobalState;
+use super::super::eth::ContractParser;
 
 const DATETIME_FORMAT : &str = "%Y-%m-%d %H:%M:%S";
 
@@ -161,4 +164,38 @@ impl<'a> HtmlRender<'a> {
         })
     }
 
+    pub fn tx_call(&self, parser : &ContractParser, input: &[u8]) -> Result<Vec<String>> {
+        let callinfo = parser.tx(input)?;
+
+        let mut out = Vec::new();
+        out.push(format!("function {}",&callinfo.func));
+
+        if !callinfo.params.is_empty() {
+            let max_param_length = callinfo.params.iter().map(|p| p.0.len()).max().unwrap();        
+
+            for (name,value) in callinfo.params {
+                let padding = (name.len()..max_param_length)
+                    .map(|_| " ").collect::<String>();
+                out.push(format!("  [{}{}]  {:?}",name,padding,value));
+            }
+        }
+        Ok(out)
+    }
+
+    pub fn tx_log(&self, parser : &ContractParser, txlog: web3::types::Log) -> Result<Vec<String>> {
+        let (name,log) = parser.log(txlog)?;
+
+        let mut out = Vec::new();
+        out.push(format!("event {}",&name));
+            
+        if !log.params.is_empty() {
+            let max_param_length = log.params.iter().map(|p| p.name.len()).max().unwrap();        
+            for param in log.params {
+                let padding = (param.name.len()..max_param_length)
+                    .map(|_| " ").collect::<String>();
+                out.push(format!("  [{}{}] {:?}",param.name,padding,param.value));
+            }
+        }
+        Ok(out) 
+    }
 }

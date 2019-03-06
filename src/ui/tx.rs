@@ -1,10 +1,9 @@
 use web3::types::H256;
 
 use super::error::*;
-use super::contract;
 use super::html::*;
 
-use super::super::bcio::BlockchainReader;
+use super::super::eth::{BlockchainReader,ContractParser};
 use super::super::state::GlobalState;
 
 pub fn html(
@@ -43,8 +42,9 @@ pub fn html(
                 let mut txt = Vec::new();
 
                 if let Some(contract) = db.get_contract(&log.address)? {
-                    // TODO: remove clone
-                    let callinfo = contract::log_to_string(&contract.abi,log.clone())?;
+                    let parser = ContractParser::from(&contract.abi)?;
+                    let callinfo = hr.tx_log(&parser,log.clone())?;
+                    
                     txt.extend_from_slice(&callinfo);
                     txt.push(String::from(""));
                 }
@@ -70,7 +70,8 @@ pub fn html(
         let mut input: Vec<String> = Vec::new();
         if let Some(to) = tx.to {
             if let Some(contract) = db.get_contract(&to)? {
-                let callinfo = contract::call_to_string(&contract.abi,&tx.input.0)?;
+                let parser = ContractParser::from(&contract.abi)?;
+                let callinfo = hr.tx_call(&parser,&tx.input.0)?;
                 input.extend_from_slice(&callinfo);
                 input.push(String::from(""));
             }

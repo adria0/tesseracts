@@ -3,9 +3,8 @@ use web3::types::Address;
 use super::error::*;
 use super::html::*;
 
-use super::super::bcio::BlockchainReader;
+use super::super::eth::{BlockchainReader,installed_compilers,ONLY_ABI};
 use super::super::state::GlobalState;
-use super::contract;
 use super::utils;
 
 pub fn html(
@@ -47,9 +46,9 @@ pub fn html(
 
     if !code.0.is_empty() {
 
-        let mut solcversions =  contract::compilers(&cfg)?;
+        let mut solcversions =  installed_compilers(&cfg)?;
         if cfg.solc_bypass {
-            solcversions.push(contract::ONLY_ABI.to_string());
+            solcversions.push(ONLY_ABI.to_string());
         }
 
         let rawcode = hr.bytes(&code.0,50);
@@ -57,7 +56,7 @@ pub fn html(
 
         if let Some(contract) = contract {
             
-            let can_set_source = contract.compiler == contract::ONLY_ABI;
+            let can_set_source = contract.compiler == ONLY_ABI;
 
             Ok(hb.render(
                 "address.handlebars",

@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
     use super::super::appdb::*;
+    use super::super::super::eth::types::*;
 
     use rand::distributions::Alphanumeric;
     use rand::{thread_rng, Rng};
     use std::iter;
-    use types::*;
     use web3::types::{Bytes, Transaction, Address, H256, TransactionReceipt,U128, U256, H2048};
 
     fn init() -> AppDB {

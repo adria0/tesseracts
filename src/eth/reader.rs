@@ -1,6 +1,5 @@
 use state::*;
 use std::collections::HashMap;
-use types::into_block;
 use web3::futures::Future;
 use web3::types::{
     Address, Block, BlockId, BlockNumber, Bytes, Transaction, TransactionId, TransactionReceipt,
@@ -8,10 +7,10 @@ use web3::types::{
 };
 
 use super::error::Result;
+use super::types::*;
 
-use geth;
+use super::super::eth::geth;
 use super::super::state::GlobalState;
-use super::super::types::InternalTx;
 
 pub struct BlockchainReader<'a> {
     wc: Web3Client,
@@ -95,7 +94,7 @@ impl<'a> BlockchainReader<'a> {
     ) -> Result<Vec<InternalTx>> {
         let mut itxs : Vec<InternalTx> = self.ge.db.iter_itxs(&tx.hash).map(|(_,t)| t).collect();
         if itxs.len() == 0 && self.ge.cfg.web3_itx {
-            let dbg : geth::Debug<_> = self.wc.web3.api();
+            let dbg : geth::web3::Debug<_> = self.wc.web3.api();
             itxs = dbg.internal_txs(&tx).wait()?.parse()?;
         }
         Ok(itxs)

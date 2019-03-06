@@ -1,10 +1,11 @@
 use state::{GlobalState, Web3Client};
 use std::sync::atomic::Ordering;
 use std::{thread, time};
-use types::into_block;
 use web3::futures::Future;
 use web3::types::{BlockId, BlockNumber, Transaction};
-use geth;
+use eth::geth;
+
+use super::types::*;
 
 use super::error::Result;
 
@@ -37,7 +38,7 @@ fn scan_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<()>{
             
             if gs.cfg.db_store_itx && gs.cfg.web3_itx {
                 // read internal transactions
-                let dbg : geth::Debug<_> = wc.web3.api();
+                let dbg : geth::web3::Debug<_> = wc.web3.api();
                 let itxs = dbg.internal_txs(&tx).wait()?.parse()?;
                 gs.db.add_tx(&tx, &re, Some(&itxs))?;
             } else {

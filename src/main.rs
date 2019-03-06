@@ -30,12 +30,10 @@ extern crate keccak_hash;
 extern crate ethkey;
 
 mod db;
-mod explorer;
+mod ui;
 mod state;
-mod types;
 mod bootstrap;
-mod geth;
-mod bcio;
+mod eth;
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -89,7 +87,7 @@ fn main() {
 
     if shared_ge.0.cfg.scan {
         let shared_ge_scan = shared_ge.0.clone();
-        thread::spawn(move || bcio::scan(&shared_ge_scan));
+        thread::spawn(move || eth::scan(&shared_ge_scan));
     }
 
     let shared_ge_controlc = shared_ge.0.clone();
@@ -106,10 +104,10 @@ fn main() {
     rouille::start_server(&shared_ge.0.cfg.bind.clone(), move |request| {
         router!(request,
             (GET)  (/) => {
-                explorer::get_home(&request,&shared_ge.0)
+                ui::get_home(&request,&shared_ge.0)
             },
             (GET)  (/{id: String}) => {
-                explorer::get_object(&request,&shared_ge.0,&id)
+                ui::get_object(&request,&shared_ge.0,&id)
             },
             (POST) (/{id: String}/contract) => {
                 let data = try_or_400!(post_input!(request, {
@@ -118,7 +116,7 @@ fn main() {
                     contract_optimized: bool,
                     contract_name: String,
                 }));
-                explorer::post_contract(&shared_ge.0, &id,
+                ui::post_contract(&shared_ge.0, &id,
                     &data.contract_source, &data.contract_compiler,
                     data.contract_optimized, &data.contract_name
                 )

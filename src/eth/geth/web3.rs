@@ -3,7 +3,8 @@ use web3::helpers::{CallFuture};
 use web3::types::{U256,Address,Transaction};
 use web3::Transport;
 use rustc_hex::{FromHexError};
-use types::*;
+
+use super::super::types::*;
 
 /// `Debug` namespace
 #[derive(Debug, Clone)]

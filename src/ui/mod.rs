@@ -7,12 +7,11 @@ mod home;
 mod html;
 mod tx;
 mod neb;
-mod contract;
 mod utils;
 
 use super::state::GlobalState;
-use super::bcio::BlockchainReader;
-use super::types::{hex_to_addr,hex_to_h256};
+use super::eth::{BlockchainReader,verify_abi,compile_and_verify,ONLY_ABI};
+use super::eth::types::{hex_to_addr,hex_to_h256};
 use super::db;
 
 use Response;
@@ -95,6 +94,7 @@ pub fn post_contract(
     contract_compiler: &str,
     contract_optimized: bool,
     contract_name: &str
+
 ) -> Response {
 
     if let Some(Id::Addr(addr)) = Id::from(&id) {
@@ -108,11 +108,11 @@ pub fn post_contract(
             optimized: contract_optimized,
             name : contract_name.to_string(),
             constructor : Vec::new(),
-            abi : if ge.cfg.solc_bypass && contract_compiler==contract::ONLY_ABI {
-                contract::verify_abi(contract_source).expect("cannot verify abi");
+            abi : if ge.cfg.solc_bypass && contract_compiler==ONLY_ABI {
+                verify_abi(contract_source).expect("cannot verify abi");
                 contract_source.to_string()
             } else {
-                contract::compile_and_verify(&ge.cfg,
+                compile_and_verify(&ge.cfg,
                     &contract_source,
                     &contract_name,
                     &contract_compiler,

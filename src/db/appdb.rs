@@ -8,7 +8,7 @@ use super::types::*;
 use super::utils::*;
 use super::iterators::*;
 
-use super::super::types::InternalTx;
+use super::super::eth::types::InternalTx;
 
 pub struct Options {
     pub store_itx : bool,

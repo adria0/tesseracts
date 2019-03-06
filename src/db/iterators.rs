@@ -3,7 +3,7 @@ use web3::types::{H256};
 use serde_cbor::{from_slice};
 
 use super::utils::*;
-use super::super::types::InternalTx;
+use super::super::eth::types::InternalTx;
 
 impl AddrTxLinks {
     pub fn new(iter: DBIterator, key: Vec<u8>) -> Self {

@@ -1,10 +1,8 @@
 use reqwest;
 use ethabi;
 
-use super::contract;
-
 use super::super::db;
-use super::super::bcio;
+use super::super::eth;
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,11 +10,10 @@ pub enum Error {
     NotFound,
     Handlebars(handlebars::RenderError),
     Reqwest(reqwest::Error),
-    BcIo(bcio::Error),
+    Eth(eth::Error),
     Io(std::io::Error),
     Db(db::Error),
     EthAbi(ethabi::Error),
-    Contract(contract::Error),
 }
 
 impl From<handlebars::RenderError> for Error {
@@ -24,9 +21,9 @@ impl From<handlebars::RenderError> for Error {
         Error::Handlebars(err)
     }
 }
-impl From<bcio::Error> for Error {
-    fn from(err: bcio::Error) -> Self {
-        Error::BcIo(err)
+impl From<eth::Error> for Error {
+    fn from(err: eth::Error) -> Self {
+        Error::Eth(err)
     }
 }
 impl From<reqwest::Error> for Error {
@@ -47,11 +44,6 @@ impl From<db::Error> for Error {
 impl From<ethabi::Error> for Error {
     fn from(err: ethabi::Error) -> Self {
         Error::EthAbi(err)
-    }
-}
-impl From<contract::Error> for Error {
-    fn from(err: contract::Error) -> Self {
-        Error::Contract(err)
     }
 }
 

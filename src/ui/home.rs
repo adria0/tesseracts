@@ -2,7 +2,7 @@ use super::error::Error;
 use super::html::HtmlRender;
 use super::utils;
 
-use super::super::bcio::BlockchainReader;
+use super::super::eth::BlockchainReader;
 use super::super::state::GlobalState;
 
 pub fn html(

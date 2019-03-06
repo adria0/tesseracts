@@ -2,14 +2,24 @@
 <link href="https://fonts.googleapis.com/css?family=Major+Mono+Display" rel="stylesheet"> 
 <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script
     src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
     integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
     crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
-<link rel="stylesheet"
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css"/>
+
+<link
+    rel="stylesheet"
     href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css"
-/>
+>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js" integrity="sha256-rfN9xU0ELcvTsc3WUaKlvSVEfzLvFCyl+ID09aieASo=" crossorigin="anonymous">
+</script>
+
 <style>
   
 a, a:active, a:focus {
@@ -136,14 +146,14 @@ textarea {
 </div>
 
 <script>
- $( '.searchTerm' ).bind('keypress', function(e){
+$( '.searchTerm' ).bind('keypress', function(e){
    if ( e.keyCode == 13 ) {
       window.location.href = "/"+$('.searchTerm').val()
    }
- });
+});
 $('.searchButton').on('click',function(){
     window.location.href = "/"+$('.searchTerm').val()
-});    
+});
 </script>
 
 <div class="pure-g">

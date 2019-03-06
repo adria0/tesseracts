@@ -5,7 +5,7 @@ use web3::types::{Address};
 use std::sync::atomic::AtomicBool;
 use bootstrap::{Config,load_handlebars_templates};
 use handlebars::Handlebars;
-use types::hex_to_addr;
+use eth::types::hex_to_addr;
 use web3::futures::Future;
 
 #[derive(Debug)]
