@@ -10,7 +10,7 @@ pub fn html(
     blockno: u64,
 ) -> Result<String> {
 
-    let hr = HtmlRender::new(&ge); 
+    let mut hr = HtmlRender::new(&ge); 
     let reader = BlockchainReader::new(&ge);
     let hb = &ge.hb;
 
@@ -18,10 +18,10 @@ pub fn html(
         let mut txs = Vec::new();
         for tx in &block.transactions {
             if tx.to.is_some() {
-                txs.push(hr.tx(&tx,&None));
+                txs.push(hr.tx(&tx,&None)?);
             } else {
                 let (tx,rcpt) = reader.tx(tx.hash)?.unwrap();
-                txs.push(hr.tx(&tx,&rcpt));
+                txs.push(hr.tx(&tx,&rcpt)?);
             }
         }
         let author = utils::author(&ge.cfg,&block);

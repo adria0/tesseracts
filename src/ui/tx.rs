@@ -3,16 +3,15 @@ use web3::types::H256;
 use super::error::*;
 use super::html::*;
 
-use super::super::eth::{BlockchainReader,ContractParser};
+use super::super::eth::{BlockchainReader};
 use super::super::state::GlobalState;
 
 pub fn html(
     ge: &GlobalState,
     txid: H256) -> Result<String> {
 
-    let hr = HtmlRender::new(&ge); 
+    let mut hr = HtmlRender::new(&ge); 
     let reader = BlockchainReader::new(&ge);
-    let db = &ge.db;
     let hb = &ge.hb;
 
     if let Some((tx, receipt)) = reader.tx(txid)? {
@@ -41,11 +40,8 @@ pub fn html(
                 
                 let mut txt = Vec::new();
 
-                if let Some(contract) = db.get_contract(&log.address)? {
-                    let parser = ContractParser::from(&contract.abi)?;
-                    let callinfo = hr.tx_log(&parser,log.clone())?;
-                    
-                    txt.extend_from_slice(&callinfo);
+                if let Some(loginfo) = hr.tx_abi_log(&log.address,log.clone())? {                  
+                    txt.extend_from_slice(&loginfo);
                     txt.push(String::from(""));
                 }
 
@@ -69,9 +65,8 @@ pub fn html(
         // log_to_string
         let mut input: Vec<String> = Vec::new();
         if let Some(to) = tx.to {
-            if let Some(contract) = db.get_contract(&to)? {
-                let parser = ContractParser::from(&contract.abi)?;
-                let callinfo = hr.tx_call(&parser,&tx.input.0)?;
+            
+            if let Some(callinfo) = hr.tx_abi_call(&to,&tx.input.0)? {
                 input.extend_from_slice(&callinfo);
                 input.push(String::from(""));
             }
@@ -81,10 +76,10 @@ pub fn html(
         }
 
         // internal transactions
-        let itxs = reader.itx(&tx)?
+        let itxs : Result<Vec<_>>= reader.itx(&tx)?
             .into_iter()
             .map(|itx| hr.tx_itx(&tx,&itx))
-            .collect::<Vec<_>>();
+            .collect();
 
         // render page
         Ok(hb.render(
@@ -104,7 +99,7 @@ pub fn html(
             "status"              : status,
             "input"               : input,
             "logs"                : logs,
-            "itxs"                : itxs,
+            "itxs"                : itxs?,
             }),
         )?)
     } else {

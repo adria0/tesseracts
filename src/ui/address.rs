@@ -14,7 +14,7 @@ pub fn html(
 ) -> Result<String> {
 
     let cfg = &ge.cfg;
-    let hr = HtmlRender::new(&ge); 
+    let mut hr = HtmlRender::new(&ge); 
     let reader = BlockchainReader::new(&ge);
     let db = &ge.db;
     let hb = &ge.hb;
@@ -36,10 +36,10 @@ pub fn html(
         for (txhash,itx_no) in it.take((pg.to-pg.from) as usize) {
             let tx = reader.tx(txhash)?.unwrap();
             if itx_no == 0 {
-                txs.push(hr.tx(&tx.0,&tx.1));
+                txs.push(hr.tx(&tx.0,&tx.1)?);
             } else {
                 let itx = db.get_itx(&txhash,itx_no)?.unwrap();
-                txs.push(hr.tx_itx(&tx.0,&itx))
+                txs.push(hr.tx_itx(&tx.0,&itx)?)
             }
         }
     }

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs;
 use std::fs::File;
+
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use rustc_hex::{FromHex,ToHex};
@@ -10,6 +11,7 @@ use rustc_hex::{FromHex,ToHex};
 use keccak_hash;
 use ethabi;
 use ethabi::param_type::{Writer, ParamType};
+use web3::types::Address;
 
 use bootstrap::Config;
 use super::error::{Error,Result};
@@ -140,7 +142,7 @@ fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<()> {
 }
 
 pub struct ContractParser {
-    pub abi : ethabi::Contract,
+    pub abis : HashMap<Address,ethabi::Contract>,
 }
 
 pub struct CallInfo<'a> {
@@ -149,48 +151,70 @@ pub struct CallInfo<'a> {
 }
 
 impl ContractParser {
-    pub fn from(abistr : &str) -> Result<Self> {
-        let abi = ethabi::Contract::load(abistr.as_bytes())?;
-        Ok( ContractParser { abi })
+    
+    pub fn new() -> Self {
+        ContractParser { abis : HashMap::new() }
     }
-    pub fn tx(&self, input: &[u8]) -> Result<CallInfo> {
+    pub fn add(&mut self, addr: Address, abistr : &str) -> Result<()> {
+        if !self.abis.contains_key(&addr) {
+            let abi = ethabi::Contract::load(abistr.as_bytes())?;
+            self.abis.insert(addr, abi);
+        }
+        Ok(())
+    }
+    pub fn contains(&self, addr: &Address)-> bool {
+        self.abis.contains_key(addr)
+    }
+    pub fn tx_funcparams(&self, addr: &Address, input: &[u8], parse_params: bool) -> Result<CallInfo> {
+        if let Some(abi) = self.abis.get(addr) {
+            for func in abi.functions() {
+                let paramtypes : &Vec<ParamType> = &func.inputs.iter().map(|p| p.kind.clone()).collect();
+                let sig = short_signature(&func.name,&paramtypes);
 
-        for func in self.abi.functions() {
-            let paramtypes : &Vec<ParamType> = &func.inputs.iter().map(|p| p.kind.clone()).collect();
-            let sig = short_signature(&func.name,&paramtypes);
+                if input.len() >= 4 && input[0..4] == sig[0..4] {
 
-            if input.len() >= 4 && input[0..4] == sig[0..4] {
+                    let params = if parse_params {
+                        func.inputs.iter()
+                            .map(|input| &input.name)
+                            .zip(ethabi::decode(&paramtypes, &input[4..])?)
+                            .collect::<Vec<_>>()
+                    } else {
+                        Vec::new()
+                    };
 
-                let params = func.inputs.iter()
-                    .map(|input| &input.name)
-                    .zip(ethabi::decode(&paramtypes, &input[4..])?)
-                    .collect::<Vec<_>>();
-
+                    return Ok(CallInfo{
+                        func : &func.name,
+                        params: params
+                    });
+                }
+            } 
+            if abi.fallback {
                 return Ok(CallInfo{
-                    func : &func.name,
-                    params: params
+                    func : FALLBACK,
+                    params : Vec::new(),
                 });
+            } else {
+                Err(Error::FunctionNotFound)
             }
-        } 
-        if self.abi.fallback {
-            return Ok(CallInfo{
-                func : FALLBACK,
-                params : Vec::new(),
-            });
         } else {
-            Err(Error::FunctionNotFound)
+            Err(Error::ContractNotFound)
         }
     }
-    pub fn log(&self, txlog: web3::types::Log) -> Result<(&str,ethabi::Log)> {
-        let event = self.abi.events().find(|e| e.signature()==txlog.topics[0]);
+    
+    pub fn log_eventparams(&self, addr: &Address, txlog: web3::types::Log) -> Result<(&str,ethabi::Log)> {
+        if let Some(abi) = self.abis.get(addr) {
+            let event = abi.events().find(|e| e.signature()==txlog.topics[0]);
 
-        if let Some(event) = event {
-            let rawlog = ethabi::RawLog{topics: txlog.topics,data: txlog.data.0};
-            let log = event.parse_log(rawlog)?;
+            if let Some(event) = event {
+                let rawlog = ethabi::RawLog{topics: txlog.topics,data: txlog.data.0};
+                let log = event.parse_log(rawlog)?;
 
-            Ok((&event.name,log))
+                Ok((&event.name,log))
+            } else {
+                Err(Error::EventNotFound)
+            }
         } else {
-            Err(Error::EventNotFound)
+            Err(Error::ContractNotFound)
         }
     }
 }

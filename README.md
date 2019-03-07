@@ -31,6 +31,7 @@ At this moment it comes with the folowing features (checked items) and there's a
 - [X] Internal transactions
 - [X] Parse clique block headers
 - [X] Named accounts
+- [X] Automatic function detection
 - [ ] Download receipts in batch
 - [ ] Forward-backwards block scanning 
 - [ ] Set postly URL... `/tx` `/addr` `/block`

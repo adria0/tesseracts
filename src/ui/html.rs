@@ -2,6 +2,7 @@ use web3::types::{Address, H256, Transaction, TransactionReceipt, U256};
 use rustc_hex::ToHex;
 use serde_derive::Serialize;
 use chrono::prelude::*;
+use std::collections::HashMap;
 
 use super::error::Result;
 
@@ -45,12 +46,19 @@ impl TextWithLink {
 
 pub struct HtmlRender<'a> {
     ge : &'a GlobalState,
+    parser : ContractParser,
+    parsed : HashMap<Address,bool>,
+
 }
 
 impl<'a> HtmlRender<'a> {
     
     pub fn new(ge :&'a GlobalState) -> HtmlRender<'a> {
-        HtmlRender { ge }
+        HtmlRender {
+            ge,
+            parser : ContractParser::new(),
+            parsed : HashMap::new(),
+        }
     }
     
     pub fn addr(&self, addr : &Address) -> TextWithLink {
@@ -107,11 +115,19 @@ impl<'a> HtmlRender<'a> {
         TextWithLink::new_text(format!("{}",dt.format(DATETIME_FORMAT)))
     }
 
-    pub fn tx(&self,tx: &Transaction, rcpt: &Option<TransactionReceipt>) -> serde_json::Value {
+    pub fn tx(&mut self,tx: &Transaction, rcpt: &Option<TransactionReceipt>) -> Result<serde_json::Value> {
         
-        let shortdata = tx
-            .input.0.to_hex::<String>()
-            .chars().take(8).collect::<String>();
+        let shortdata = if let Some(to) = tx.to {
+            if self.has_contract(&to)? {
+                let callinfo = self.parser.tx_funcparams(&to, &tx.input.0,false)?;
+                callinfo.func.to_string()
+            } else {
+                tx.input.0.to_hex::<String>()
+                .chars().take(8).collect::<String>()
+            }
+        } else {
+            String::from("")
+        };
 
         let (to_link,to_label) = if let Some(to) = tx.to {             
             (self.addr(&to),"")
@@ -121,7 +137,7 @@ impl<'a> HtmlRender<'a> {
             (TextWithLink::blank(),"New contract")
         };
 
-        json!({
+        Ok(json!({
             "type"          : "EXT",
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid(&tx.hash),
@@ -130,7 +146,7 @@ impl<'a> HtmlRender<'a> {
             "to_label"      : to_label,
             "shortdata"     : shortdata,
             "value"         : self.ether(&tx.value)
-        })
+        }))
     }
 
     fn addr_newcontract(&self, addr: &Address) -> TextWithLink {
@@ -147,13 +163,21 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
-    pub fn tx_itx(&self,tx: &Transaction, itx: &InternalTx) -> serde_json::Value {
+    pub fn tx_itx(&mut self,tx: &Transaction, itx: &InternalTx) -> Result<serde_json::Value> {
         
-        let shortdata = itx
-            .input.to_hex::<String>()
-            .chars().take(8).collect::<String>();
+        let shortdata = if let Some(to) = itx.to {
+            if self.has_contract(&to)? {
+                let callinfo = self.parser.tx_funcparams(&to, &itx.input,false)?;
+                callinfo.func.to_string()
+            } else {
+                itx.input.to_hex::<String>()
+                .chars().take(8).collect::<String>()
+            }
+        } else {
+            String::from("")
+        };
 
-        json!({
+        Ok(json!({
             "type"          : "int",
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid(&tx.hash),
@@ -161,41 +185,63 @@ impl<'a> HtmlRender<'a> {
             "to_link"       : self.addr_to(&itx.to,&itx.contract),
             "shortdata"     : shortdata,
             "value"         : self.ether(&itx.value)
-        })
+        }))
     }
 
-    pub fn tx_call(&self, parser : &ContractParser, input: &[u8]) -> Result<Vec<String>> {
-        let callinfo = parser.tx(input)?;
+    pub fn tx_abi_call(&mut self, addr: &Address, input: &[u8]) -> Result<Option<Vec<String>>> {
+        if self.has_contract(addr)? {
+            let callinfo = self.parser.tx_funcparams(addr, input,true)?;
 
-        let mut out = Vec::new();
-        out.push(format!("function {}",&callinfo.func));
+            let mut out = Vec::new();
+            out.push(format!("function {}",&callinfo.func));
 
-        if !callinfo.params.is_empty() {
-            let max_param_length = callinfo.params.iter().map(|p| p.0.len()).max().unwrap();        
+            if !callinfo.params.is_empty() {
+                let max_param_length = callinfo.params.iter().map(|p| p.0.len()).max().unwrap();        
 
-            for (name,value) in callinfo.params {
-                let padding = (name.len()..max_param_length)
-                    .map(|_| " ").collect::<String>();
-                out.push(format!("  [{}{}]  {:?}",name,padding,value));
+                for (name,value) in callinfo.params {
+                    let padding = (name.len()..max_param_length)
+                        .map(|_| " ").collect::<String>();
+                    out.push(format!("  [{}{}]  {:?}",name,padding,value));
+                }
             }
+            Ok(Some(out))
+        } else {
+            Ok(None)
         }
-        Ok(out)
     }
 
-    pub fn tx_log(&self, parser : &ContractParser, txlog: web3::types::Log) -> Result<Vec<String>> {
-        let (name,log) = parser.log(txlog)?;
+    pub fn tx_abi_log(&mut self, addr: &Address, txlog: web3::types::Log) -> Result<Option<Vec<String>>> {
+        if self.has_contract(addr)? {
+            let (name,log) = self.parser.log_eventparams(addr, txlog)?;
 
-        let mut out = Vec::new();
-        out.push(format!("event {}",&name));
-            
-        if !log.params.is_empty() {
-            let max_param_length = log.params.iter().map(|p| p.name.len()).max().unwrap();        
-            for param in log.params {
-                let padding = (param.name.len()..max_param_length)
-                    .map(|_| " ").collect::<String>();
-                out.push(format!("  [{}{}] {:?}",param.name,padding,param.value));
+            let mut out = Vec::new();
+            out.push(format!("event {}",&name));
+                
+            if !log.params.is_empty() {
+                let max_param_length = log.params.iter().map(|p| p.name.len()).max().unwrap();        
+                for param in log.params {
+                    let padding = (param.name.len()..max_param_length)
+                        .map(|_| " ").collect::<String>();
+                    out.push(format!("  [{}{}] {:?}",param.name,padding,param.value));
+                }
             }
+            Ok(Some(out))
+        } else {
+            Ok(None)
         }
-        Ok(out) 
+    }
+
+    fn has_contract(&mut self, addr: &Address) -> Result<bool> {
+        if !self.parsed.contains_key(addr) {
+            self.parsed.insert(*addr, true);
+            if let Some(contract) = self.ge.db.get_contract(&addr)? {
+                self.parser.add(*addr, &contract.abi)?;
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        } else {
+            Ok(self.parser.contains(addr))
+        }
     }
 }
