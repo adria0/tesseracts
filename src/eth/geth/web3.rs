@@ -28,11 +28,7 @@ impl<T: Transport> Namespace<T> for Debug<T> {
 #[derive(Clone,Debug,Serialize,Deserialize)]
 pub struct DbgCallEntry {
     pub from: String,
-    pub gas: String,
-    #[serde(rename = "gasUsed")] 
-    pub gas_used: String,
     pub input: String,
-    pub output: String,
     pub to: String,
     #[serde(rename = "type")] 
     pub op: String,
