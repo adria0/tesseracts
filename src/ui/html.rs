@@ -210,7 +210,7 @@ impl<'a> HtmlRender<'a> {
                     let padding = (name.len()..max_param_length)
                         .map(|_| " ").collect::<String>();
                     let token = self.abi_token(&value);
-                    out.push(format!("  [{}{}]  {}",name,padding,token.html()));
+                    out.push(format!("  [{}{}]  {}",name,padding,token));
                 }
             }
             Ok(Some(out))
@@ -232,7 +232,7 @@ impl<'a> HtmlRender<'a> {
                     let padding = (param.name.len()..max_param_length)
                         .map(|_| " ").collect::<String>();
                     let token = self.abi_token(&param.value);
-                    out.push(format!("  [{}{}] {}",param.name,padding,token.html()));
+                    out.push(format!("  [{}{}] {}",param.name,padding,token));
                 }
             }
             Ok(Some(out))
@@ -251,7 +251,7 @@ impl<'a> HtmlRender<'a> {
 
             ethabi::Token::Bool(v) => 
                 format!("{:}",v),
-
+                              
             ethabi::Token::FixedBytes(v) | ethabi::Token::Bytes(v) =>
                 format!("0x{}",v.to_hex::<String>()),
 
