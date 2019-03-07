@@ -3,6 +3,7 @@ use rustc_hex::ToHex;
 use serde_derive::Serialize;
 use chrono::prelude::*;
 use std::collections::HashMap;
+use ethabi;
 
 use super::error::Result;
 
@@ -40,6 +41,13 @@ impl TextWithLink {
         TextWithLink {
             text: "".to_string(),
             link: None,
+        }
+    }
+    pub fn html(&self) -> String {
+        if let Some(link) = &self.link {
+            format!("<a href={}>{}</a>",self.text,link)
+        } else {
+            self.text.clone()  
         }
     }
 }
@@ -201,7 +209,8 @@ impl<'a> HtmlRender<'a> {
                 for (name,value) in callinfo.params {
                     let padding = (name.len()..max_param_length)
                         .map(|_| " ").collect::<String>();
-                    out.push(format!("  [{}{}]  {:?}",name,padding,value));
+                    let token = self.abi_token(&value);
+                    out.push(format!("  [{}{}]  {}",name,padding,token.html()));
                 }
             }
             Ok(Some(out))
@@ -222,12 +231,32 @@ impl<'a> HtmlRender<'a> {
                 for param in log.params {
                     let padding = (param.name.len()..max_param_length)
                         .map(|_| " ").collect::<String>();
-                    out.push(format!("  [{}{}] {:?}",param.name,padding,param.value));
+                    let token = self.abi_token(&param.value);
+                    out.push(format!("  [{}{}] {}",param.name,padding,token.html()));
                 }
             }
             Ok(Some(out))
         } else {
             Ok(None)
+        }
+    }
+
+    fn abi_token(&self, token : &ethabi::Token) -> String {
+        match token {
+            ethabi::Token::Address(v) =>
+                format!("0x{:x}",v),
+
+            ethabi::Token::Int(v) | ethabi::Token::Uint(v) => 
+                format!("{:} (0x{:x})",v,v),
+
+            ethabi::Token::Bool(v) => 
+                format!("{:}",v),
+
+            ethabi::Token::FixedBytes(v) | ethabi::Token::Bytes(v) =>
+                format!("0x{}",v.to_hex::<String>()),
+
+            _ =>
+                format!("{:?}",token)
         }
     }
 
