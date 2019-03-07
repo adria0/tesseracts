@@ -1,0 +1,100 @@
+a, a:active, a:focus {
+    color: #3498db;
+    text-decoration-line: none;
+}
+a:hover {
+    color: #3498db;
+    text-decoration-line: underline;
+}
+.code {
+    font-size: 100%;
+    font-family:monospace;
+    line-height: 1.2;
+    color: #222;
+}
+
+td {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+}
+
+h5 {
+    margin-block-start: 1.36em;
+    margin-block-end: 0.5em;
+    font-size: 1rem;
+    color: #777;
+}
+
+h6 {
+    margin-block-start: 0em;
+    margin-block-end: 0.5em;
+    font-size: 1rem;
+    color: #777;
+}
+textarea {
+    height: 200px;
+}
+.disabled {
+    color: #fff;
+}
+
+.search {
+  width: 100%;
+  position: relative;
+}
+.search:before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  font-family: 'FontAwesome';
+  content: '\f002';
+  background: #3498db;
+  text-align: center;
+  color: #fff;
+  border-radius: 5px;
+  -webkit-font-smoothing: subpixel-antialiased;
+  font-smooth: always;
+}
+
+.searchTerm {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 100%;
+  border: 5px solid #3498db;
+  padding: 5px;
+  height: 40px;
+  border-radius: 5px;
+  outline: none;
+}
+
+.searchButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.majorfont {
+    font-family: 'Major Mono Display', monospace;
+}
+
+.text-truncate {
+  overflow: hidden  !important;
+  text-overflow: ellipsis  !important;
+  white-space: nowrap  !important;
+}
+
+.type-tx {
+  max-width: 100;  
+}
+
+.type-addr {
+  max-width: 200;
+}

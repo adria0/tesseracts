@@ -106,6 +106,13 @@ fn main() {
             (GET)  (/) => {
                 ui::get_home(&request,&shared_ge.0)
             },
+            (GET)  (/s/{name: String}) => {
+                if let Some(res) = bootstrap::get_resource(&name) {
+                    rouille::Response::from_data("", res)
+                } else {
+                    rouille::Response::empty_404()
+                }
+            },
             (GET)  (/{id: String}) => {
                 ui::get_object(&request,&shared_ge.0,&id)
             },
