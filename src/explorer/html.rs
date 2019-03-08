@@ -9,7 +9,7 @@ use super::error::Result;
 
 use super::super::eth::types::InternalTx;
 use super::super::state::GlobalState;
-use super::super::eth::ContractParser;
+use super::super::eth::contract::ContractParser;
 
 const DATETIME_FORMAT : &str = "%Y-%m-%d %H:%M:%S";
 
@@ -43,13 +43,6 @@ impl TextWithLink {
             link: None,
         }
     }
-    pub fn html(&self) -> String {
-        if let Some(link) = &self.link {
-            format!("<a href={}>{}</a>",self.text,link)
-        } else {
-            self.text.clone()  
-        }
-    }
 }
 
 pub struct HtmlRender<'a> {
@@ -69,6 +62,7 @@ impl<'a> HtmlRender<'a> {
         }
     }
     
+    /// render an address
     pub fn addr(&self, addr : &Address) -> TextWithLink {
         TextWithLink::new_link(
             self.ge.named_address.get(addr).unwrap_or(&format!("0x{:x}", addr)).to_string(),
@@ -76,6 +70,7 @@ impl<'a> HtmlRender<'a> {
         )
     }
 
+    /// render an address or show a text
     pub fn addr_or(&self, optaddr : &Option<Address>, or : &str) -> TextWithLink {
         if let Some(addr) = optaddr {
             self.addr(&addr)
@@ -84,12 +79,14 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
+    /// render byte array chunked
     pub fn bytes(&self, bytes : &[u8], chunk_size: usize) -> Vec<String> {
         bytes.chunks(chunk_size)
             .map(|c| c.to_hex::<String>())
             .collect()
     }
 
+    /// render a transaction hash
     pub fn txid(&self, txid : &H256) -> TextWithLink {
         TextWithLink::new_link(
             format!("{:x}", txid),
@@ -97,14 +94,17 @@ impl<'a> HtmlRender<'a> {
         )
     }
 
+    /// render a block number
     pub fn blockno(&self, no : u64) -> TextWithLink {
         TextWithLink::new_link(format!("{}", no), format!("/{}", no))
     }
 
+    /// render gigaweis
     pub fn gwei(&self, wei : &U256) -> TextWithLink {
         TextWithLink::new_text(format!("{} GWei ({})", wei / *GWEI, wei))
     }
 
+    /// render ether amount
     pub fn ether(&self, wei : &U256) -> TextWithLink {
         if *wei == U256::zero()  {
             TextWithLink::new_text("0 Ξ".to_string())
@@ -118,15 +118,17 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
+    /// render a timestamp
     pub fn timestamp(&self, sec1970 : &U256) -> TextWithLink {
         let dt = Utc.timestamp(sec1970.low_u64() as i64, 0);
         TextWithLink::new_text(format!("{}",dt.format(DATETIME_FORMAT)))
     }
 
+    /// render a transaction
     pub fn tx(&mut self,tx: &Transaction, rcpt: &Option<TransactionReceipt>) -> Result<serde_json::Value> {
         
         let shortdata = if let Some(to) = tx.to {
-            if self.has_contract(&to)? {
+            if self.register_contract(&to)? {
                 let callinfo = self.parser.tx_funcparams(&to, &tx.input.0,false)?;
                 callinfo.func.to_string()
             } else {
@@ -157,12 +159,14 @@ impl<'a> HtmlRender<'a> {
         }))
     }
 
+    /// render an address that is a contract
     fn addr_newcontract(&self, addr: &Address) -> TextWithLink {
         let mut twl = self.addr(&addr);
         twl.text = format!("🆕 {}",twl.text);
         twl
     }
 
+    /// render an address that is a destination or a new contract (from a tx)
     fn addr_to(&self, to: &Option<Address>, contract: &Option<Address>) -> TextWithLink {
         if let Some(to) = to {
             self.addr(&to)
@@ -171,10 +175,11 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
+    /// render an internal transaction
     pub fn tx_itx(&mut self,tx: &Transaction, itx: &InternalTx) -> Result<serde_json::Value> {
         
         let shortdata = if let Some(to) = itx.to {
-            if self.has_contract(&to)? {
+            if self.register_contract(&to)? {
                 let callinfo = self.parser.tx_funcparams(&to, &itx.input,false)?;
                 callinfo.func.to_string()
             } else {
@@ -196,8 +201,9 @@ impl<'a> HtmlRender<'a> {
         }))
     }
 
+    /// render a tx call
     pub fn tx_abi_call(&mut self, addr: &Address, input: &[u8]) -> Result<Option<Vec<String>>> {
-        if self.has_contract(addr)? {
+        if self.register_contract(addr)? {
             let callinfo = self.parser.tx_funcparams(addr, input,true)?;
 
             let mut out = Vec::new();
@@ -219,9 +225,10 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
+    /// render a tx log
     pub fn tx_abi_log(&mut self, addr: &Address, txlog: web3::types::Log) -> Result<Option<Vec<String>>> {
-        if self.has_contract(addr)? {
-            let (name,log) = self.parser.log_eventparams(addr, txlog)?;
+        if self.register_contract(addr)? {
+            let (name,log) = self.parser.log_eventparams(txlog)?;
 
             let mut out = Vec::new();
             out.push(format!("event {}",&name));
@@ -241,6 +248,7 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
+    /// render a token (basic ethereum type)
     fn abi_token(&self, token : &ethabi::Token) -> String {
         match token {
             ethabi::Token::Address(v) =>
@@ -260,7 +268,8 @@ impl<'a> HtmlRender<'a> {
         }
     }
 
-    fn has_contract(&mut self, addr: &Address) -> Result<bool> {
+    /// check if is a contract and has an abi defined
+    fn register_contract(&mut self, addr: &Address) -> Result<bool> {
         if !self.parsed.contains_key(addr) {
             self.parsed.insert(*addr, true);
             if let Some(contract) = self.ge.db.get_contract(&addr)? {

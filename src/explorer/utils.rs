@@ -11,6 +11,7 @@ pub struct Pagination {
     pub next_page : Option<u64>,
 }
 
+/// calc the pagination for a set of results
 pub fn paginate( max : u64, page_size : u64, page_no : u64 ) -> Pagination {
     let from = page_no*page_size;
     let to = if (page_no+1)*page_size > max {
@@ -31,7 +32,8 @@ pub fn paginate( max : u64, page_size : u64, page_no : u64 ) -> Pagination {
     Pagination{from,to,prev_page,next_page}
 }
 
-pub fn author<T>(cfg: &Config, block: &Block<T>) -> Address {
+/// get the author of a block
+pub fn block_author<T>(cfg: &Config, block: &Block<T>) -> Address {
     
     let client = if &cfg.web3_client == GETH_AUTO {
         if block.author == H160::default() {
@@ -48,6 +50,4 @@ pub fn author<T>(cfg: &Config, block: &Block<T>) -> Address {
     } else {
         block.author
     }
-
-    
 }

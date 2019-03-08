@@ -271,11 +271,11 @@ mod tests {
     #[test]
     fn test_set_get_block() {
         let appdb = init();
-        assert_eq!(Ok(None), appdb.get_last_block());
-        assert_eq!(Ok(()), appdb.set_last_block(1));
-        assert_eq!(Ok(Some(1)), appdb.get_last_block());
-        assert_eq!(Ok(()), appdb.set_last_block(0xaabbccdd11223344));
-        assert_eq!(Ok(Some(0xaabbccdd11223344)), appdb.get_last_block());
+        assert_eq!(Ok(None), appdb.get_next_block_to_scan());
+        assert_eq!(Ok(()), appdb.set_next_block_to_scan(1));
+        assert_eq!(Ok(Some(1)), appdb.get_next_block_to_scan());
+        assert_eq!(Ok(()), appdb.set_next_block_to_scan(0xaabbccdd11223344));
+        assert_eq!(Ok(Some(0xaabbccdd11223344)), appdb.get_next_block_to_scan());
     }
 
 }

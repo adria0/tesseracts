@@ -6,7 +6,8 @@ use super::html::*;
 use super::super::eth::{BlockchainReader};
 use super::super::state::GlobalState;
 
-pub fn html(
+/// render the transaction page
+pub fn render(
     ge: &GlobalState,
     txid: H256) -> Result<String> {
 

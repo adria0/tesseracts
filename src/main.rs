@@ -30,7 +30,8 @@ extern crate keccak_hash;
 extern crate ethkey;
 
 mod db;
-mod ui;
+mod explorer;
+mod scrapper;
 mod state;
 mod bootstrap;
 mod eth;
@@ -38,12 +39,6 @@ mod eth;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
-use rouille::{Request,Response};
-
-// it turns out that is not possible to put an Arc inside a rocket::State,
-//  rocket internally crashes when unreferencing, so it can be solved by
-//  wrapping it inside a one-element tuple
-pub struct SharedGlobalState(Arc<state::GlobalState>);
 
 use structopt::StructOpt;
 
@@ -51,10 +46,6 @@ use structopt::StructOpt;
 #[derive(StructOpt, Debug)]
 #[structopt()]
 struct Opt {
-    /// Silence all output
-    #[structopt(short = "q", long = "quiet")]
-    quiet: bool,
-    
     /// Verbose mode (-v, -vv, -vvv, etc)
     #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
     verbose: usize,
@@ -69,28 +60,32 @@ struct Opt {
 }
 
 fn main() {
-    let opt = Opt::from_args();
 
+    // load cmdline parameters
+
+    let opt = Opt::from_args();
     stderrlog::new()
         .module(module_path!())
-        .quiet(opt.quiet)
         .verbosity(opt.verbose)
         .timestamp(opt.ts.unwrap_or(stderrlog::Timestamp::Off))
         .init()
         .unwrap();
 
+    // load configuration
     let cfg = bootstrap::Config::read(&opt.cfg)
         .expect("cannot read config");
 
-    let shared_ge = SharedGlobalState(Arc::new(state::GlobalState::new(cfg).unwrap()));
-    debug!("non-empty-blocks {:?}",shared_ge.0.db.count_non_empty_blocks());
+    // create the (arc) global state 
+    let globalstate = Arc::new(state::GlobalState::new(cfg).unwrap());
 
-    if shared_ge.0.cfg.scan {
-        let shared_ge_scan = shared_ge.0.clone();
-        thread::spawn(move || eth::scan(&shared_ge_scan));
+    // start scrap the blockchain (if requiered)
+    if globalstate.cfg.scan {
+        let shared_ge_scan = globalstate.clone();
+        thread::spawn(move || scrapper::start_scrapper(&shared_ge_scan));
     }
 
-    let shared_ge_controlc = shared_ge.0.clone();
+    // set the control-c handler
+    let shared_ge_controlc = globalstate.clone();
     ctrlc::set_handler(move || {
         info!("Got Ctrl-C handler signal. Stopping...");
         shared_ge_controlc.stop_signal.store(true, Ordering::SeqCst);
@@ -100,35 +95,10 @@ fn main() {
     })
     .expect("Error setting Ctrl-C handler");
 
-    info!("Lisening to {}...", &shared_ge.0.cfg.bind.clone()); // TODO: remove clones
-    rouille::start_server(&shared_ge.0.cfg.bind.clone(), move |request| {
-        router!(request,
-            (GET)  (/) => {
-                ui::get_home(&request,&shared_ge.0)
-            },
-            (GET)  (/s/{name: String}) => {
-                if let Some(res) = bootstrap::get_resource(&name) {
-                    rouille::Response::from_data("", res)
-                } else {
-                    rouille::Response::empty_404()
-                }
-            },
-            (GET)  (/{id: String}) => {
-                ui::get_object(&request,&shared_ge.0,&id)
-            },
-            (POST) (/{id: String}/contract) => {
-                let data = try_or_400!(post_input!(request, {
-                    contract_source: String,
-                    contract_compiler: String,
-                    contract_optimized: bool,
-                    contract_name: String,
-                }));
-                ui::post_contract(&shared_ge.0, &id,
-                    &data.contract_source, &data.contract_compiler,
-                    data.contract_optimized, &data.contract_name
-                )
-            },
-            _ => rouille::Response::empty_404()
-        )
-    })
+    // start the http server
+    info!("Lisening to {}...", &globalstate.cfg.bind.clone()); // TODO: remove clones
+
+    //let shared_ge_explorer = shared_ge.0.clone();
+    explorer::start_explorer(globalstate);
+
 }

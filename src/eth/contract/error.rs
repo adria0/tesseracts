@@ -8,6 +8,12 @@ pub enum Error {
     FromHex(rustc_hex::FromHexError),
     EthAbi(ethabi::Error),
     SerdeJson(serde_json::Error),
+    ContractInvalid,
+    ContractNotFound,
+    FunctionNotFound,
+    CodeDoesNotMatch,
+    CompilerNotFound,
+    EventNotFound,
     Io(std::io::Error),
 }
 

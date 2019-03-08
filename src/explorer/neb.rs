@@ -5,7 +5,8 @@ use super::utils;
 use super::super::state::GlobalState;
 use super::super::eth::BlockchainReader;
 
-pub fn html(
+/// render the non-empty-blocks page
+pub fn render(
     ge: &GlobalState,
     page_no : u64,
 ) -> Result<String> {
@@ -29,7 +30,7 @@ pub fn html(
         let it = db.iter_non_empty_blocks()?.skip(pg.from as usize);
         for n in it.take((pg.to-pg.from) as usize) {
             if let Some(block) = reader.block(n)? {
-                let author = utils::author(&ge.cfg,&block);
+                let author = utils::block_author(&ge.cfg,&block);
                 blocks.push(json!({
                     "block"     : hr.blockno(n),
                     "author"    : hr.addr(&author),
@@ -47,7 +48,7 @@ pub fn html(
     Ok(hb.render(
         "neb.handlebars",
         &json!({
-            "last_indexed_block" : db.get_last_block().unwrap(),
+            "last_indexed_block" : db.get_next_block_to_scan().unwrap(),
             "blocks": blocks,
             "has_next_page": pg.next_page.is_some(),
             "next_page": pg.next_page.unwrap_or(0),

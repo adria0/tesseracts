@@ -8,16 +8,12 @@ use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use rustc_hex::{FromHex,ToHex};
 
-use keccak_hash;
 use ethabi;
-use ethabi::param_type::{Writer, ParamType};
-use web3::types::Address;
 
 use bootstrap::Config;
 use super::error::{Error,Result};
 
 pub static ONLY_ABI : &str = "abi-only";
-static FALLBACK : &str = "()";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SolcContract {
@@ -32,6 +28,7 @@ pub struct SolcJson {
     version   : String,
 }
 
+/// get the solc complilers intalled in config solc_path
 pub fn installed_compilers(cfg : &Config) -> Result<Vec<String>> {
     if let Some(path) = &cfg.solc_path {
         Ok(fs::read_dir(path)?
@@ -45,13 +42,14 @@ pub fn installed_compilers(cfg : &Config) -> Result<Vec<String>> {
     }
 }
 
+/// verify if an abi is ok
 pub fn verify_abi(source: &str) -> Result<()>{
     ethabi::Contract::load(source.as_bytes())?;
     Ok(())
 }
 
+/// compile a contract and check if it maches with blockchain bytecode
 pub fn compile_and_verify(
-
     cfg : &Config,
     source: &str,
     contractname: &str,
@@ -109,6 +107,7 @@ pub fn compile_and_verify(
 }
 
 
+/// check if two bytecodes matches
 fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<()> {
     let binruntime : Vec<u8> = contract.binruntime.from_hex()?;
 
@@ -139,98 +138,4 @@ fn code_equals(contract : &SolcContract, code: &[u8]) -> Result<()> {
     } else {
         Ok(())
     }
-}
-
-pub struct ContractParser {
-    pub abis : HashMap<Address,ethabi::Contract>,
-}
-
-pub struct CallInfo<'a> {
-    pub func : &'a str,
-    pub params : Vec<(&'a String,ethabi::Token)>,
-}
-
-impl ContractParser {
-    
-    pub fn new() -> Self {
-        ContractParser { abis : HashMap::new() }
-    }
-    pub fn add(&mut self, addr: Address, abistr : &str) -> Result<()> {
-        if !self.abis.contains_key(&addr) {
-            let abi = ethabi::Contract::load(abistr.as_bytes())?;
-            self.abis.insert(addr, abi);
-        }
-        Ok(())
-    }
-    pub fn contains(&self, addr: &Address)-> bool {
-        self.abis.contains_key(addr)
-    }
-    pub fn tx_funcparams(&self, addr: &Address, input: &[u8], parse_params: bool) -> Result<CallInfo> {
-        if let Some(abi) = self.abis.get(addr) {
-            for func in abi.functions() {
-                let paramtypes : &Vec<ParamType> = &func.inputs.iter().map(|p| p.kind.clone()).collect();
-                let sig = short_signature(&func.name,&paramtypes);
-
-                if input.len() >= 4 && input[0..4] == sig[0..4] {
-
-                    let params = if parse_params {
-                        func.inputs.iter()
-                            .map(|input| &input.name)
-                            .zip(ethabi::decode(&paramtypes, &input[4..])?)
-                            .collect::<Vec<_>>()
-                    } else {
-                        Vec::new()
-                    };
-
-                    return Ok(CallInfo{
-                        func : &func.name,
-                        params: params
-                    });
-                }
-            } 
-            if abi.fallback {
-                return Ok(CallInfo{
-                    func : FALLBACK,
-                    params : Vec::new(),
-                });
-            } else {
-                Err(Error::FunctionNotFound)
-            }
-        } else {
-            Err(Error::ContractNotFound)
-        }
-    }
-    
-    pub fn log_eventparams(&self, addr: &Address, txlog: web3::types::Log) -> Result<(&str,ethabi::Log)> {
-        if let Some(abi) = self.abis.get(addr) {
-            let event = abi.events().find(|e| e.signature()==txlog.topics[0]);
-
-            if let Some(event) = event {
-                let rawlog = ethabi::RawLog{topics: txlog.topics,data: txlog.data.0};
-                let log = event.parse_log(rawlog)?;
-
-                Ok((&event.name,log))
-            } else {
-                Err(Error::EventNotFound)
-            }
-        } else {
-            Err(Error::ContractNotFound)
-        }
-    }
-}
-
-fn short_signature(name: &str, params: &[ParamType]) -> [u8; 4] {
-	let mut result = [0u8; 4];
-	fill_signature(name, params, &mut result);
-	result
-}
-
-fn fill_signature(name: &str, params: &[ParamType], result: &mut [u8]) {
-	let types = params.iter()
-		.map(Writer::write)
-		.collect::<Vec<String>>()
-		.join(",");
-
-	let data: Vec<u8> = From::from(format!("{}({})", name, types).as_str());
-    keccak_hash::keccak_256(&data,result);
 }

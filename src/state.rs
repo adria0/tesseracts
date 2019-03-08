@@ -66,11 +66,13 @@ impl GlobalState {
             }
         ).expect("cannot open database");
 
-        if None == db.get_last_block().expect("error reading last block") {
-            db.set_last_block(cfg.scan_start_block.unwrap_or(1))
+        // set the last block if not set
+        if None == db.get_next_block_to_scan().expect("error reading last block") {
+            db.set_next_block_to_scan(cfg.scan_start_block.unwrap_or(1))
                 .expect("error setting last block");
         }
 
+        // read named addresses
         let mut named_address = HashMap::new();
         if let Some(nas) = &cfg.named_address {
             for na in nas {

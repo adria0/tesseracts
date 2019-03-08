@@ -3,11 +3,16 @@ use web3::types::Address;
 use super::error::*;
 use super::html::*;
 
-use super::super::eth::{BlockchainReader,installed_compilers,ONLY_ABI};
+use super::super::eth::{
+    BlockchainReader,
+    contract::{installed_compilers,ONLY_ABI}
+};
+
 use super::super::state::GlobalState;
 use super::utils;
 
-pub fn html(
+/// render the address info
+pub fn render(
     ge: &GlobalState,
     addr: &Address,
     page_no : u64,
@@ -19,9 +24,12 @@ pub fn html(
     let db = &ge.db;
     let hb = &ge.hb;
 
+    // get current blockchain data
+
     let balance = reader.current_balance(addr)?;
     let code = reader.current_code(addr)?;
-    let mut txs = Vec::new();
+
+    // get linked transactions (internal and external)
 
     let count_addr_tx_links = db.count_addr_tx_links(&addr)?;
     let  limit = if count_addr_tx_links > 200 {
@@ -31,6 +39,7 @@ pub fn html(
     };
     
     let pg = utils::paginate(limit,20,page_no);
+    let mut txs = Vec::new();
     if pg.from <= pg.to {
         let it = db.iter_addr_tx_links(&addr).skip(pg.from as usize);
         for (txhash,itx_no) in it.take((pg.to-pg.from) as usize) {
@@ -44,9 +53,11 @@ pub fn html(
         }
     }
 
+    // render
+
     if !code.0.is_empty() {
 
-        let mut solcversions =  installed_compilers(&cfg)?;
+        let mut solcversions = installed_compilers(&cfg)?;
         if cfg.solc_bypass {
             solcversions.push(ONLY_ABI.to_string());
         }

@@ -17,21 +17,29 @@ pub struct BlockchainReader<'a> {
     pub ge: &'a GlobalState,
 }
 
+/// Blockchain reader provides an unified way to access to the blockchain data 
 impl<'a> BlockchainReader<'a> {
     pub fn new(ge: &'a GlobalState) -> Self {
         let wc = ge.new_web3client();
         BlockchainReader { wc, ge }
     }
+
+    /// retrieve the current block
     pub fn current_block_number(&self) -> Result<u64>{
         Ok(self.wc.web3.eth().block_number().wait()?.low_u64())
     }
+
+    /// retrieve the current balance for an address
     pub fn current_balance(&self, addr: &Address) -> Result<U256>{
         Ok(self.wc.web3.eth().balance(*addr, None).wait()?)
     }
+
+    /// retrieve the current code for an address
     pub fn current_code(&self, addr: &Address) -> Result<Bytes>{
         Ok(self.wc.web3.eth().code(*addr, None).wait()?)
     }
 
+    /// retrieve a block
     pub fn block(&self, blockno: u64) -> Result<Option<Block<H256>>>{
         if let Some(blk) = self.ge.db.get_block(blockno)? {
             Ok(Some(blk))
@@ -44,6 +52,7 @@ impl<'a> BlockchainReader<'a> {
             }
         }
     }
+    /// retrieve a block with its transactions
     pub fn block_with_txs(&self, blockno: u64) -> Result<Option<Block<Transaction>>>{
         // assume that if the block exists all transactions will also exist
         if let Some(blk) = self.ge.db.get_block(blockno)? {
@@ -64,6 +73,8 @@ impl<'a> BlockchainReader<'a> {
             }
         }
     }
+
+    /// retrieve a transaction
     pub fn tx(
         &self,
         txhash: H256,
@@ -88,6 +99,7 @@ impl<'a> BlockchainReader<'a> {
         }
     }
 
+    /// retrieve an internal transaction
     pub fn itx(
         &self,
         tx: &Transaction

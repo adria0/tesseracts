@@ -13,7 +13,6 @@ pub enum RecordType {
     IntTx = 10,
 }
 
-
 #[derive(Debug,Serialize,Deserialize)]
 pub struct Contract {
     pub source : String,

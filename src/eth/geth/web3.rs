@@ -12,6 +12,7 @@ pub struct Debug<T> {
     transport: T,
 }
 
+/// A transport for debug_ calls
 impl<T: Transport> Namespace<T> for Debug<T> {
     fn new(transport: T) -> Self
     where
@@ -25,6 +26,7 @@ impl<T: Transport> Namespace<T> for Debug<T> {
     }
 }
 
+/// Entry returned by calltracer 
 #[derive(Clone,Debug,Serialize,Deserialize)]
 pub struct DbgCallEntry {
     pub from: String,
@@ -35,39 +37,42 @@ pub struct DbgCallEntry {
     pub value: String,
 }
 
+/// The structure returned by debug_traceTransaction(calltracer)
 #[derive(Debug,Serialize,Deserialize)]
 pub struct DbgInternalTxs {
     calls : Option<Vec<DbgCallEntry>>,
 }
 
 impl DbgInternalTxs {
-    pub fn parse(&self) -> Result<Vec<InternalTx>,FromHexError> {
 
-        let zero_u256 = U256::default();
-
-        let mut itxs = Vec::new();
-
-        fn opthex_to_addr(s:&str) -> Result<Option<Address>,FromHexError> {
-            if s.is_empty() {
-                Ok(None)
-            } else {
-                Ok(Some(hex_to_addr(s)?))
-            }
+    /// Parse hex string address
+    fn opthex_to_addr(&self, s:&str) -> Result<Option<Address>,FromHexError> {
+        if s.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(hex_to_addr(s)?))
         }
+    }
+
+    /// Parse debug_ call and return a vector of InternalTx
+    pub fn parse(&self) -> Result<Vec<InternalTx>,FromHexError> {
+        let zero_u256 = U256::default();
+        let mut itxs = Vec::new();
+        
         if let Some(calls) = &self.calls { 
             for call in calls {
                 if call.op == "CREATE" || call.op == "CREATE2" {
                     itxs.push(InternalTx{
                         from     : hex_to_addr(&call.from)?,
                         to       : None,
-                        contract : opthex_to_addr(&call.to)?,
+                        contract : self.opthex_to_addr(&call.to)?,
                         input    : hex_to_vec(&call.input)?,
                         value    : if call.value == "0x0" { zero_u256 } else { hex_to_u256(&call.value)? }
                     })
                 } else {
                     itxs.push(InternalTx{
                         from     : hex_to_addr(&call.from)?,
-                        to       : opthex_to_addr(&call.to)?,
+                        to       : self.opthex_to_addr(&call.to)?,
                         contract : None, 
                         input    : hex_to_vec(&call.input)?,
                         value    : if call.value == "0x0" { zero_u256 } else { hex_to_u256(&call.value)? }
@@ -80,6 +85,8 @@ impl DbgInternalTxs {
 }
 
 impl<T: Transport> Debug<T> {
+    
+    /// Retrieve internal transactions by calling debug_traceTransaction
     pub fn internal_txs(&self, tx: &Transaction) -> CallFuture<DbgInternalTxs, T::Out> {
         CallFuture::new(
             self.transport.execute  (

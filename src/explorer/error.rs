@@ -14,6 +14,7 @@ pub enum Error {
     Io(std::io::Error),
     Db(db::Error),
     EthAbi(ethabi::Error),
+    Contract(eth::contract::Error),
 }
 
 impl From<handlebars::RenderError> for Error {
@@ -44,6 +45,12 @@ impl From<db::Error> for Error {
 impl From<ethabi::Error> for Error {
     fn from(err: ethabi::Error) -> Self {
         Error::EthAbi(err)
+    }
+}
+
+impl From<eth::contract::Error> for Error {
+    fn from(err: eth::contract::Error) -> Self {
+        Error::Contract(err)
     }
 }
 

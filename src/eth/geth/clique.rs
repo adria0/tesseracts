@@ -18,6 +18,7 @@ use web3::types::{H256, Address};
     -----------------------------------------------
 */
 
+/// get the block author from the clique header
 #[allow(deprecated)]
 pub fn parse_clique_header<T>(block : &web3::types::Block<T>) -> Option<Address> {
     const EXTRA_SEAL : usize = 65;

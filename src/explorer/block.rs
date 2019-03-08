@@ -5,7 +5,8 @@ use super::utils;
 use super::super::eth::BlockchainReader;
 use super::super::state::GlobalState;
 
-pub fn html(
+/// render the block page
+pub fn render(
     ge: &GlobalState,
     blockno: u64,
 ) -> Result<String> {
@@ -15,6 +16,12 @@ pub fn html(
     let hb = &ge.hb;
 
     if let Some(block) = reader.block_with_txs(blockno)? {
+
+        let author = utils::block_author(&ge.cfg,&block);
+        let rawextra = hr.bytes(&block.extra_data.0,32);
+
+        // get transactions
+
         let mut txs = Vec::new();
         for tx in &block.transactions {
             if tx.to.is_some() {
@@ -24,8 +31,8 @@ pub fn html(
                 txs.push(hr.tx(&tx,&rcpt)?);
             }
         }
-        let author = utils::author(&ge.cfg,&block);
-        let rawextra = hr.bytes(&block.extra_data.0,32);
+
+        // render
 
         Ok(hb.render(
             "block.handlebars",

@@ -1,6 +1,5 @@
 #[derive(Debug)]
 pub enum Error {
-    Precondition(&'static str),
     Rocks(rocksdb::Error),
     SerdeCbor(serde_cbor::error::Error),
 }

@@ -1,21 +1,17 @@
+use std::sync::Arc;
 use web3::types::{Address,H256};
+use rouille::{Request,Response};
 
-mod address;
-mod block;
-mod error;
-mod home;
-mod html;
-mod tx;
-mod neb;
-mod utils;
+use super::super::state::GlobalState;
+use super::super::bootstrap::get_resource;
 
-use super::state::GlobalState;
-use super::eth::{BlockchainReader,verify_abi,compile_and_verify,ONLY_ABI};
-use super::eth::types::{hex_to_addr,hex_to_h256};
-use super::db;
+use super::super::eth::{
+    BlockchainReader,
+    contract::{verify_abi,compile_and_verify,ONLY_ABI}
+};
 
-use Response;
-use Request;
+use super::super::eth::types::{hex_to_addr,hex_to_h256};
+use super::super::db;
 
 #[derive(Serialize)]
 pub enum Id {
@@ -48,11 +44,11 @@ pub fn error_page(innerhtml: &str) -> String {
     html
 }
 
-pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
+fn get_home(request: &Request, ge: &GlobalState) -> Response {
     let page_no = request.get_param("p").unwrap_or_else(|| "0".to_string()).parse::<u64>();
     if let Ok(page_no) = page_no {
         Response::html(
-            match home::html(&ge,page_no) {
+            match super::home::render(&ge,page_no) {
                 Ok(html) => html,
                 Err(err) => error_page(format!("Error: {:?}", err).as_str())
             }
@@ -62,11 +58,11 @@ pub fn get_home(request: &Request, ge: &GlobalState) -> Response {
     }
 }
 
-pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
+fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
     
     if id == "neb" {
         let page_no = request.get_param("p").unwrap_or_else(|| "0".to_string()).parse::<u64>().unwrap();
-        let html = neb::html(&ge,page_no);
+        let html = super::neb::render(&ge,page_no);
         Response::html(match html {
             Ok(html) => html,
             Err(err) => error_page(format!("Error: {:?}", err).as_str())
@@ -74,9 +70,9 @@ pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
     } else if let Some(id) = Id::from(&id) {
         let page_no = request.get_param("p").unwrap_or_else(|| "0".to_string()).parse::<u64>().unwrap();
         let html = match id {
-            Id::Addr(addr) => address::html(&ge,&addr,page_no),
-            Id::Tx(txid) => tx::html(&ge,txid),
-            Id::Block(block) => block::html(&ge,block)
+            Id::Addr(addr) => super::address::render(&ge,&addr,page_no),
+            Id::Tx(txid) => super::tx::render(&ge,txid),
+            Id::Block(block) => super::block::render(&ge,block)
         };
         Response::html(match html {
             Ok(html) => html,
@@ -87,7 +83,7 @@ pub fn get_object(request: &Request,ge: &GlobalState, id: &str) -> Response {
     }
 }
 
-pub fn post_contract(
+fn post_contract(
     ge: &GlobalState,
     id: &str,
     contract_source: &str,
@@ -127,4 +123,38 @@ pub fn post_contract(
     } else {
         Response::html(error_page("bad input"))
     }
+}
+
+
+pub fn start_explorer(gs: Arc<GlobalState>) {
+
+    rouille::start_server(gs.cfg.bind.clone(), move |request| router!(request,
+        (GET)  (/) => {
+            get_home(&request,&gs)
+        },
+        (GET)  (/s/{name: String}) => {
+            if let Some(res) = get_resource(&name) {
+                rouille::Response::from_data("", res)
+            } else {
+                rouille::Response::empty_404()
+            }
+        },
+        (GET)  (/{id: String}) => {
+            get_object(&request,&gs,&id)
+        },
+        (POST) (/{id: String}/contract) => {
+            let data = try_or_400!(post_input!(request, {
+                contract_source: String,
+                contract_compiler: String,
+                contract_optimized: bool,
+                contract_name: String,
+            }));
+            post_contract(&gs, &id,
+                &data.contract_source, &data.contract_compiler,
+                data.contract_optimized, &data.contract_name
+            )
+        },
+        _ => rouille::Response::empty_404()
+    ));
+
 }
