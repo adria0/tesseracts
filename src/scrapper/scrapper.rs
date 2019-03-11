@@ -1,8 +1,11 @@
 use state::{GlobalState, Web3Client};
 use std::sync::atomic::Ordering;
 use std::{thread, time};
+use std::time::{Duration, SystemTime};
+
 use web3::futures::Future;
 use web3::types::{BlockId, BlockNumber, Transaction};
+
 use eth::geth;
 
 use super::super::eth::types::*;
@@ -21,14 +24,19 @@ fn scrap_blocks(gs: &GlobalState, wc: &Web3Client) -> Result<()>{
     }
 
     // loop until last block number or stop_signal
+    let mut last_output = SystemTime::UNIX_EPOCH;
     let until_block = wc.web3.eth().block_number().wait()?.low_u64();
     while next_block <= until_block && !gs.stop_signal.load(Ordering::SeqCst) {
 
-        let progress = (next_block * 1000) / until_block;
-        info!(
-            "Adding block {}/{} ({}‰)...",
-            next_block, until_block, progress
-        );
+        // show progress
+        if SystemTime::now().duration_since(last_output)? > Duration::from_secs(5) {
+            let progress = (next_block * 1000) / until_block;
+            info!(
+                "Adding block {}/{} ({}‰)...",
+                next_block, until_block, progress
+            );
+            last_output = SystemTime::now();
+        }
 
         // read block and with its transactions
         let block = wc

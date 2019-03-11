@@ -9,6 +9,7 @@ pub enum Error {
     EthAbi(ethabi::Error),
     SerdeJson(serde_json::Error),
     Io(std::io::Error),
+    Time(std::time::SystemTimeError),
 }
 
 impl From<io::Error> for Error {
@@ -43,6 +44,13 @@ impl From<db::Error> for Error {
         Error::DB(err)
     }
 }
+impl From<std::time::SystemTimeError> for Error {
+    fn from(err: std::time::SystemTimeError) -> Self {
+        Error::Time(err)
+    }
+}
+
+
 
 pub type Result<T> = std::result::Result<T,Error>;
 
