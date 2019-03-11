@@ -1,3 +1,4 @@
 target
+data
 run_infura.sh
 run_nn.sh
