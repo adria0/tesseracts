@@ -73,7 +73,7 @@ pub fn render(
                 "address.handlebars",
                 &json!({
                     "address" : format!("0x{:x}",addr),
-                    "balance" : hr.ether(&balance).text,
+                    "balance" : hr.ether(&balance,false),
                     "txs" : txs,
                     "txs_count" : count_addr_tx_links,
                     "has_next_page": pg.next_page.is_some(),
@@ -98,7 +98,7 @@ pub fn render(
                 "address.handlebars",
                 &json!({
                     "address" : format!("0x{:x}",addr),
-                    "balance" : hr.ether(&balance).text,
+                    "balance" : hr.ether(&balance,false),
                     "txs" : txs,
                     "txs_count" : count_addr_tx_links,
                     "has_next_page": pg.next_page.is_some(),
@@ -120,7 +120,7 @@ pub fn render(
             "address.handlebars",
             &json!({
                 "address" : format!("0x{:x}",addr),
-                "balance" : hr.ether(&balance).text,
+                "balance" : hr.ether(&balance,false),
                 "txs"     : txs,
                 "txs_count" : count_addr_tx_links,
                 "has_next_page": pg.next_page.is_some(),

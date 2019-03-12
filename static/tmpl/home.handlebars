@@ -17,8 +17,8 @@ Blocks
     <thead>
         <th>Block</th>
         <th>Author</th>
-        <th>Transactions</th>
-        <th>Timedate</th>
+        <th>#txs</th>
+        <th>Datetime</th>
         <th>Gas used</th>
         <th>Gas limit</th>
     </thead>
@@ -27,7 +27,7 @@ Blocks
         <tr>
             <td class="text-truncate type-block"><a href={{block.link}}>{{block.text}}</td>
             <td class="text-truncate type-addr"><a href={{author.link}}>{{author.text}}</td>
-            <td>{{tx_count}}</td>
+            <td class="type-txcount">{{tx_count}}</td>
             <td class="text-truncate type-timestamp">{{timestamp}}</td>
             <td class="text-truncate type-gas">{{gas_used}}</td>
             <td class="text-truncate type-gas">{{gas_limit}}</td>
@@ -35,7 +35,8 @@ Blocks
         {{/each}}
     </tbody>
 </table>
-
+<br>
+<div class="footer">
 Next block to index is #{{ last_indexed_block }}
-
+</div>
 {{ > footer.handlebars }}

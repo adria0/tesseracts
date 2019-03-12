@@ -16,6 +16,8 @@ const DATETIME_FORMAT : &str = "%Y-%m-%d %H:%M:%S";
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
     static ref ETHER: U256 = U256::from_dec_str("1000000000000000000").unwrap();
+    static ref TENPOW5: U256 = U256::from(100000);
+    static ref TENPOW1: U256 = U256::from(10);
 }
 
 #[derive(Serialize)]
@@ -100,28 +102,43 @@ impl<'a> HtmlRender<'a> {
     }
 
     /// render gigaweis
-    pub fn gwei(&self, wei : &U256) -> TextWithLink {
-        TextWithLink::new_text(format!("{} GWei ({})", wei / *GWEI, wei))
+    pub fn gwei(&self, wei : &U256, short : bool) -> String {
+        let m = ((wei * *TENPOW1) / *GWEI).low_u64();
+        if short {
+            format!("{}.{}", m/10,m%10)
+        } else {
+            format!("{}.{} GWei", m/10,m%10)
+        }
     }
 
     /// render ether amount
-    pub fn ether(&self, wei : &U256) -> TextWithLink {
+    pub fn ether(&self, wei : &U256, short: bool) -> String {
         if *wei == U256::zero()  {
-            TextWithLink::new_text("0 Ξ".to_string())
+            String::from("0 Ξ")
         } else {
-            let ether  = wei / *ETHER;
-            let mut remain = wei % *ETHER;
-            while remain > U256::zero() && remain % 10 == U256::zero() {
-                remain /= 10; 
+            if short {
+                let tenmilliethers = (wei * *TENPOW5) / *ETHER;
+                let div = TENPOW5.as_u64() as f64;
+                if tenmilliethers.low_u64() > 0 {
+                    format!("{} Ξ", tenmilliethers.as_u64() as f64 / div)           
+                } else {
+                    format!(">0.0001 Ξ")            
+                }
+            } else {
+                let ether  = wei / *ETHER;
+                let mut remain = wei % *ETHER;
+                while remain > U256::zero() && remain % 10 == U256::zero() {
+                    remain /= 10; 
+                }
+                format!("{}.{} Ξ", ether, remain)            
             }
-            TextWithLink::new_text(format!("{}.{} Ξ", ether, remain))
         }
     }
 
     /// render a timestamp
-    pub fn timestamp(&self, sec1970 : &U256) -> TextWithLink {
+    pub fn timestamp(&self, sec1970 : &U256) -> String {
         let dt = Utc.timestamp(sec1970.low_u64() as i64, 0);
-        TextWithLink::new_text(format!("{}",dt.format(DATETIME_FORMAT)))
+        format!("{}",dt.format(DATETIME_FORMAT))
     }
 
     /// render a transaction
@@ -149,13 +166,14 @@ impl<'a> HtmlRender<'a> {
 
         Ok(json!({
             "type"          : "EXT",
+            "gas_price"     : self.gwei(&tx.gas_price,true),
             "blockno"       : self.blockno(tx.block_number.unwrap().low_u64()),
             "tx"            : self.txid(&tx.hash),
             "from"          : self.addr(&tx.from),
             "to_link"       : to_link,
             "to_label"      : to_label,
             "shortdata"     : shortdata,
-            "value"         : self.ether(&tx.value)
+            "value"         : self.ether(&tx.value,true)
         }))
     }
 
@@ -197,7 +215,7 @@ impl<'a> HtmlRender<'a> {
             "from"          : self.addr(&itx.from),
             "to_link"       : self.addr_to(&itx.to,&itx.contract),
             "shortdata"     : shortdata,
-            "value"         : self.ether(&itx.value)
+            "value"         : self.ether(&itx.value,true)
         }))
     }
 

@@ -46,7 +46,7 @@ pub fn render(
                 "gas_used"         : block.gas_used.low_u64(),
                 "gas_limit"        : block.gas_limit.low_u64(),
                 "extra_data"       : rawextra,
-                "timestamp"        : hr.timestamp(&block.timestamp).text,
+                "timestamp"        : hr.timestamp(&block.timestamp),
                 "difficulty"       : block.difficulty,
                 "total_difficulty" : block.total_difficulty,
                 "seal_fields"      : block.seal_fields,

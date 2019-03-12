@@ -1,3 +1,7 @@
+.pure-g , .pure-g [class*="pure-u"], html {
+  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+}
+
 a, a:active, a:focus {
     color: #3498db;
     text-decoration-line: none;
@@ -7,7 +11,7 @@ a:hover {
     text-decoration-line: underline;
 }
 .code {
-    font-size: 100%;
+    font-size: 1 00%;
     font-family:monospace;
     line-height: 1.2;
     color: #222;
@@ -21,9 +25,9 @@ td {
 h5 {
     margin-block-start: 1.36em;
     margin-block-end: 0.5em;
-    font-size: 1rem;
-    color: #777;
-}
+    font-size: 1.2rem;
+    color: #036dd5;
+  }
 
 h6 {
     margin-block-start: 0em;
@@ -79,10 +83,20 @@ textarea {
   height: 40px;
   opacity: 0;
   cursor: pointer;
+  padding-top: 8px;
 }
 
 .majorfont {
     font-family: 'Major Mono Display', monospace;
+}
+
+.pure-table {
+  border: 1px;
+}
+
+.pure-table td, .pure-table th {
+  padding: .3em .5em;
+  border-left: 0px;
 }
 
 .text-truncate {
@@ -97,4 +111,38 @@ textarea {
 
 .type-addr {
   max-width: 200;
+}
+
+.type-gas , .type-txcount, .type-value {
+  text-align: right;
+}
+
+.tabset > label {
+  font-size: 80%;
+}
+
+.tabset > input:checked + label {
+  font-size: 80%;
+  border-bottom: 1px solid #000;
+  border-radius: 4px;
+  margin-bottom: 1px;
+}
+
+.tabset > label::after {
+  content: none;
+}
+
+.type-data {
+  font-size: 120% !important;
+  font-family: monospace;
+  color: #222;
+}
+
+.tab-panel {
+  padding: 5px 5px;
+  border-top: 0px;
+}
+
+.footer {
+  font-size: 80%;
 }

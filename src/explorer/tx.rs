@@ -44,16 +44,16 @@ pub fn render(
                 if let Some(loginfo) = hr.tx_abi_log(&log.address,log.clone())? {                  
                     txt.extend_from_slice(&loginfo);
                     txt.push(String::from(""));
-                }
-
-                txt.push("data".to_string());
-                for ll in hr.bytes(&log.data.0,50) {
-                    txt.push(format!("  {}",ll));
-                }
-                
-                txt.push("topics".to_string());
-                for (t, topic) in log.topics.into_iter().enumerate() {
-                    txt.push(format!("  [{}] {:?}",t,topic));
+                } else {
+                    txt.push("data".to_string());
+                    for ll in hr.bytes(&log.data.0,50) {
+                        txt.push(format!("  {}",ll));
+                    }
+                    
+                    txt.push("topics".to_string());
+                    for (t, topic) in log.topics.into_iter().enumerate() {
+                        txt.push(format!("  [{}] {:?}",t,topic));
+                    }
                 }
 
                 logs.push(json!({
@@ -90,10 +90,10 @@ pub fn render(
             "from"                : hr.addr(&tx.from),
             "tonewcontract"       : tx.to.is_none(),
             "to"                  : hr.addr_or(&tx.to,"New contract"),
-            "value"               : hr.ether(&tx.value).text,
+            "value"               : hr.ether(&tx.value,true),
             "block"               : hr.blockno(tx.block_number.unwrap().low_u64()),
             "gas"                 : tx.gas.low_u64(),
-            "gas_price"           : hr.gwei(&tx.gas_price).text,
+            "gas_price"           : hr.gwei(&tx.gas_price,false),
             "cumulative_gas_used" : cumulative_gas_used,
             "gas_used"            : gas_used,
             "contract_address"    : contract_address,

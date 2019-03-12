@@ -26,13 +26,15 @@ pub fn render(
         let block_no = last_blockno - n;
         if let Some(block) = reader.block(block_no)? {
             let author = utils::block_author(&ge.cfg,&block);
+            let gas_used_p = (100*block.gas_used.low_u64())/block.gas_limit.low_u64();
+            let gas_limit =  block.gas_limit.low_u64() / 100000;
             blocks.push(json!({
                 "block"     : hr.blockno(block_no),
                 "tx_count"  : block.transactions.len(),
                 "author"    : hr.addr(&author),
-                "timestamp" : hr.timestamp(&block.timestamp).text,
-                "gas_used"   : block.gas_used.low_u64(), 
-                "gas_limit"  : block.gas_limit.low_u64()
+                "timestamp" : hr.timestamp(&block.timestamp),
+                "gas_used"   : format!("{}%",gas_used_p), 
+                "gas_limit"  : format!("{}.{}M",gas_limit/10,gas_limit%10)
             }));
         } else {
             return Err(Error::Unexpected);

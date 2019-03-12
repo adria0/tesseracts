@@ -50,10 +50,12 @@
         </tr>
     </tbody>
 </table>
+{{#if txs}}
 <h5 class="title">Transactions</h5>
 <table class="pure-table">
     <thead>
         <th>Tx</th>
+        <th>GPrice</th>
         <th>From</th>
         <th>To</th>
         <th>Value</th>
@@ -63,13 +65,15 @@
         {{#each txs}}
         <tr>
             <td class="text-truncate type-tx"><a href={{tx.link}}>{{tx.text}}</td>
+            <td class="text-truncate type-gas">{{gas_price}}</td>
             <td class="text-truncate type-addr"><a href={{from.link}}>{{from.text}}</a></td>
             <td class="text-truncate type-addr">{{to_label}}<a href={{to_link.link}}>{{to_link.text}}</td>
-            <td class="text-truncate type-value">{{value.text}}</td>
+            <td class="text-truncate type-value">{{value}}</td>
             <td class="text-truncate type-data">{{shortdata}}</td>
         </tr>
         {{/each}}
     </tbody>
 </table>
+{{/if}}
 
 {{ > footer.handlebars }}

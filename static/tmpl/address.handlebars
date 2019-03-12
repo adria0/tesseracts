@@ -10,6 +10,7 @@
     </tbody>
 </table>
 
+{{#if txs}}
 <h5 class="title">Transactions ({{ txs_count }})
 {{#if has_prev_page}}
 <a href="/{{ address }}?p={{prev_page}}"><i class="fa fa-chevron-circle-left" aria-hidden="true"></i></a>
@@ -46,8 +47,24 @@
         {{/each}}
     </tbody>
 </table>
+{{/if}}
 
 {{ #if hascode }}
+
+<h5 class="title">Contract</h5>
+
+<div class="tabset">
+  <!-- Tab 1 -->
+  <input type="radio" name="tabset" id="tabSource" aria-controls="source" checked>
+  <label for="tabSource">SOURCE</label>
+  <!-- Tab 2 -->
+  <input type="radio" name="tabset" id="tabBinary" aria-controls="binary">
+  <label for="tabBinary">BINARY</label>
+  
+  <div class="tab-panels">
+    <section id="source" class="tab-panel">
+
+
 {{ #if can_set_source }}
 
 <script>
@@ -67,27 +84,40 @@ $(function() {
 });
 </script>
 
-<h5 class="title">Set contract source</h5>
 <form class="pure-form  pure-form-stacked" action="/{{ address }}/contract" method="post">
     <label for="contract_source">Solidity or ABI</label>
     <textarea class="code" name="contract_source" rows="20" cols="105">
 {{ contract_source }}</textarea>
-    <label for="contract_compiler">Source type</label>
-    <select id="contract_compiler" name="contract_compiler">
-        {{#each solcversions}}<option>{{this}}</option>
-        {{/each}}
-    </select>
+    <table>
+        <tr>
+            <td>
+               <label for="contract_compiler">Source type</label>    
+            </td>
+            <td>
+                <select id="contract_compiler" name="contract_compiler">
+                    {{#each solcversions}}<option>{{this}}</option>
+                    {{/each}}
+                </select>
+            </td>
+            <td>
+                <button class="pure-button pure-button-primary">Upload</button>
+            </td>
+        </tr>
+    </table>
     <div id=solcoptions>
-        <label for="contract_name">Contract name</label>
-        <input type="text" name="contract_name"></input>
-        <input type="checkbox" name="contract_optimized"> Optimized</input><br>
+        <table>
+            <tr>
+                <td><label for="contract_name">Contract name</label></td>
+                <td><input type="text" name="contract_name"></input></td>
+                <td><input type="checkbox" name="contract_optimized"> Optimized</input></td>
+            </tr>
+        </table>
     </div>
-    <button class="pure-button pure-button-primary">Upload</button>
+    
 </form>
 
 {{ else }}
 
-<h5 class="title">Contract source</h5>
     Compiler version {{ contract_compiler }}, optimized {{ contract_optimized }}<br>
     Contract name {{ contract_name }}<br>
     <textarea rows="20" cols="100" disabled=true>
@@ -95,11 +125,20 @@ $(function() {
 
 {{ /if }}
 
-<br>
-<h5 class="title">Raw EVM Code</h5>
+
+    </section>
+    <section id="binary" class="tab-panel">
+
 <textarea class="code" rows="20" cols="105" disabled="true">
 {{#each rawcode}}{{this}}
 {{/each}}</textarea>
+
+    </section>
+  </div>
+
+
+</div>
 {{ /if }}
+
 
 {{ > footer.handlebars }}

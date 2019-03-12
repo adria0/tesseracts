@@ -17,8 +17,8 @@ Non-empty-blocks
     <thead>
         <th>Block</th>
         <th>Author</th>
-        <th>Transactions</th>
-        <th>Timedate</th>
+        <th>#txs</th>
+        <th>Datetime</th>
         <th>Gas used</th>
         <th>Gas limit</th>
     </thead>
@@ -36,6 +36,9 @@ Non-empty-blocks
     </tbody>
 </table>
 
-Last indexed block is #{{ last_indexed_block }}
 
-{{ > header.footer }}
+<div class="footer">
+Next block to index is #{{ last_indexed_block }}
+</div>
+
+{{ > footer.handlebars }}

@@ -31,13 +31,15 @@ pub fn render(
         for n in it.take((pg.to-pg.from) as usize) {
             if let Some(block) = reader.block(n)? {
                 let author = utils::block_author(&ge.cfg,&block);
+                let gas_used_p = (100*block.gas_used.low_u64())/block.gas_limit.low_u64();
+                let gas_limit =  block.gas_limit.low_u64() / 100000;
                 blocks.push(json!({
                     "block"     : hr.blockno(n),
                     "author"    : hr.addr(&author),
                     "tx_count"  : block.transactions.len(),
-                    "timestamp" : hr.timestamp(&block.timestamp).text,
-                    "gas_used"  : block.gas_used.low_u64(), 
-                    "gas_limit" : block.gas_limit.low_u64()
+                    "timestamp" : hr.timestamp(&block.timestamp),
+                    "gas_used"   : format!("{}%",gas_used_p), 
+                    "gas_limit"  : format!("{}.{}M",gas_limit/10,gas_limit%10)
                 }));
             } else {
                 return Err(Error::Unexpected);
