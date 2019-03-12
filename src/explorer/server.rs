@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::mem_replace_option_with_none))]
+
 use std::sync::Arc;
 use web3::types::{Address,H256};
 use rouille::{Request,Response};
@@ -124,7 +126,6 @@ fn post_contract(
         Response::html(error_page("bad input"))
     }
 }
-
 
 pub fn start_explorer(gs: Arc<GlobalState>) {
 

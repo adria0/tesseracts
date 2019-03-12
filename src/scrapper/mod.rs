@@ -1,4 +1,4 @@
-mod scrapper;
+mod scrap;
 mod error;
 
-pub use self::scrapper::start_scrapper;
+pub use self::scrap::start_scrapper;

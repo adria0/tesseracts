@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
+
 use db;
 
 use std::collections::HashMap;
@@ -41,7 +43,7 @@ pub struct Web3Client {
 }
 
 impl GlobalState {
-
+    
     pub fn new(cfg: Config) -> Result<Self>  {
         
         let transport = web3::transports::Http::new(cfg.web3_url.as_str())?;

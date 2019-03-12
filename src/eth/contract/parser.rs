@@ -27,10 +27,8 @@ impl ContractParser {
     
     /// add a new contract and its abi
     pub fn add(&mut self, addr: Address, abistr : &str) -> Result<()> {
-        if !self.abis.contains_key(&addr) {
-            let abi = ethabi::Contract::load(abistr.as_bytes())?;
-            self.abis.insert(addr, abi);
-        }
+        self.abis.entry(addr)
+            .or_insert(ethabi::Contract::load(abistr.as_bytes())?);
         Ok(())
     }
 
@@ -59,7 +57,7 @@ impl ContractParser {
 
                     return Ok(CallInfo{
                         func : &func.name,
-                        params: params
+                        params
                     });
                 }
             } 

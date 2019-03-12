@@ -35,7 +35,7 @@ pub fn paginate( max : u64, page_size : u64, page_no : u64 ) -> Pagination {
 /// get the author of a block
 pub fn block_author<T>(cfg: &Config, block: &Block<T>) -> Address {
     
-    let client = if &cfg.web3_client == GETH_AUTO {
+    let client = if cfg.web3_client == GETH_AUTO {
         if block.author == H160::default() {
             GETH_CLIQUE
         } else {

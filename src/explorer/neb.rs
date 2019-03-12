@@ -32,7 +32,7 @@ pub fn render(
             if let Some(block) = reader.block(n)? {
                 let author = utils::block_author(&ge.cfg,&block);
                 let gas_used_p = (100*block.gas_used.low_u64())/block.gas_limit.low_u64();
-                let gas_limit =  block.gas_limit.low_u64() / 100000;
+                let gas_limit =  block.gas_limit.low_u64() / 100_000;
                 blocks.push(json!({
                     "block"     : hr.blockno(n),
                     "author"    : hr.addr(&author),

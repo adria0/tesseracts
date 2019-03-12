@@ -16,7 +16,7 @@ const DATETIME_FORMAT : &str = "%Y-%m-%d %H:%M:%S";
 lazy_static! {
     static ref GWEI: U256 = U256::from_dec_str("1000000000").unwrap();
     static ref ETHER: U256 = U256::from_dec_str("1000000000000000000").unwrap();
-    static ref TENPOW5: U256 = U256::from(100000);
+    static ref TENPOW5: U256 = U256::from(100_000);
     static ref TENPOW1: U256 = U256::from(10);
 }
 
@@ -115,23 +115,21 @@ impl<'a> HtmlRender<'a> {
     pub fn ether(&self, wei : &U256, short: bool) -> String {
         if *wei == U256::zero()  {
             String::from("0 Ξ")
-        } else {
-            if short {
-                let tenmilliethers = (wei * *TENPOW5) / *ETHER;
-                let div = TENPOW5.as_u64() as f64;
-                if tenmilliethers.low_u64() > 0 {
-                    format!("{} Ξ", tenmilliethers.as_u64() as f64 / div)           
-                } else {
-                    format!(">0.0001 Ξ")            
-                }
+        } else if short {
+            let tenmilliethers = (wei * *TENPOW5) / *ETHER;
+            let div = TENPOW5.as_u64() as f64;
+            if tenmilliethers.low_u64() > 0 {
+                format!("{} Ξ", tenmilliethers.as_u64() as f64 / div)           
             } else {
-                let ether  = wei / *ETHER;
-                let mut remain = wei % *ETHER;
-                while remain > U256::zero() && remain % 10 == U256::zero() {
-                    remain /= 10; 
-                }
-                format!("{}.{} Ξ", ether, remain)            
+                String::from(">0.0001 Ξ")            
             }
+        } else {
+            let ether  = wei / *ETHER;
+            let mut remain = wei % *ETHER;
+            while remain > U256::zero() && remain % 10 == U256::zero() {
+                remain /= 10; 
+            }
+            format!("{}.{} Ξ", ether, remain)            
         }
     }
 
