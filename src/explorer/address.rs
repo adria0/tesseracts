@@ -38,7 +38,7 @@ pub fn render(
         count_addr_tx_links
     };
     
-    let pg = utils::paginate(limit,20,page_no);
+    let pg = utils::paginate(limit,15,page_no);
     let mut txs = Vec::new();
     if pg.from <= pg.to {
         let it = db.iter_addr_tx_links(&addr).skip(pg.from as usize);
@@ -72,6 +72,7 @@ pub fn render(
             Ok(hb.render(
                 "address.handlebars",
                 &json!({
+                    "ui_title" : ge.cfg.ui_title,
                     "address" : format!("0x{:x}",addr),
                     "balance" : hr.ether(&balance,false),
                     "txs" : txs,
@@ -97,6 +98,7 @@ pub fn render(
             Ok(hb.render(
                 "address.handlebars",
                 &json!({
+                    "ui_title" : ge.cfg.ui_title,
                     "address" : format!("0x{:x}",addr),
                     "balance" : hr.ether(&balance,false),
                     "txs" : txs,
@@ -119,6 +121,7 @@ pub fn render(
         Ok(hb.render(
             "address.handlebars",
             &json!({
+                "ui_title" : ge.cfg.ui_title,
                 "address" : format!("0x{:x}",addr),
                 "balance" : hr.ether(&balance,false),
                 "txs"     : txs,

@@ -37,6 +37,7 @@ pub fn render(
         Ok(hb.render(
             "block.handlebars",
             &json!({
+                "ui_title"         : ge.cfg.ui_title,
                 "blockno"          : hr.blockno(blockno).text,
                 "parent_hash"      : block.parent_hash,
                 "uncles_hash"      : block.uncles_hash,

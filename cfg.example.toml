@@ -1,3 +1,8 @@
+# user iterface -----------------------------------
+
+# title of the page, e.g. "tesseracts"
+ui_title         = 
+
 # database ----------------------------------------
 
 # where the database is located

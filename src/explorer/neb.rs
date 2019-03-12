@@ -24,7 +24,7 @@ pub fn render(
     } else {
         count_non_empty_blocks
     };
-    let pg = utils::paginate(limit,20,page_no);
+    let pg = utils::paginate(limit,15,page_no);
 
     if pg.from <= pg.to {
         let it = db.iter_non_empty_blocks()?.skip(pg.from as usize);
@@ -50,6 +50,7 @@ pub fn render(
     Ok(hb.render(
         "neb.handlebars",
         &json!({
+            "ui_title" : ge.cfg.ui_title,
             "last_indexed_block" : db.get_next_block_to_scan().unwrap(),
             "blocks": blocks,
             "has_next_page": pg.next_page.is_some(),

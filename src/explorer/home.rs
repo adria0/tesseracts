@@ -21,7 +21,7 @@ pub fn render(
 
     // get blocks
 
-    let pg = utils::paginate(last_blockno,20,page_no);
+    let pg = utils::paginate(last_blockno,15,page_no);
     for n in pg.from..pg.to {
         let block_no = last_blockno - n;
         if let Some(block) = reader.block(block_no)? {
@@ -46,6 +46,7 @@ pub fn render(
     Ok(hb.render(
         "home.handlebars",
         &json!({
+            "ui_title" : ge.cfg.ui_title,
             "last_indexed_block" : db.get_next_block_to_scan().unwrap(),
             "blocks": blocks,
             "has_next_page": pg.next_page.is_some(),

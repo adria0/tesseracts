@@ -16,6 +16,9 @@ pub struct NamedAddress {
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    /// the main page title
+    pub ui_title: String,
+
     /// database location path
     pub db_path: String,
 

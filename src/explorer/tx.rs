@@ -86,6 +86,7 @@ pub fn render(
         Ok(hb.render(
             "tx.handlebars",
             &json!({
+            "ui_title"            : ge.cfg.ui_title,
             "txhash"              : format!("0x{:x}",txid),
             "from"                : hr.addr(&tx.from),
             "tonewcontract"       : tx.to.is_none(),
