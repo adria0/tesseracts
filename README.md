@@ -42,7 +42,7 @@ At this moment it comes with the folowing features (checked items) and there's a
 
 ## Set up
 
-To run tesseracts, you need to install rust nightly, so first install rust with rustup 
+To run tesseracts, you need to install rust 
 
 `curl https://sh.rustup.rs -sSf | sh` 
 
@@ -50,4 +50,4 @@ create a .toml config file (see `cfg.example.toml`)
 
 run the application with (if your config file is named `cfg.toml`)
 
-`cargo run -- --cfg cfg.toml`
+`cargo run -- --cfg cfg.toml -vvv`
