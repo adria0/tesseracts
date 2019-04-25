@@ -1,0 +1,93 @@
+# user iterface -----------------------------------
+
+# title of the page, e.g. "tesseracts"
+ui_title         = "göerli" 
+
+# database ----------------------------------------
+
+# where the database is located
+db_path          = "/tmp/db" 
+
+# true|false if we want to scan blocks and save it into db
+scan             = true 
+
+# the starting block to start to retrieve blocks (only iff scan==true)
+scan_start_block = 1
+
+# store with tx are contained in addr? (bool)
+db_store_addr    = true
+
+# store the transactions and receipts? (bool)
+db_store_tx      = false
+
+# store internal transactions? (bool)
+db_store_itx     = false
+
+# store list of last non empty blocks? (bool)
+db_store_neb     = false
+
+# web3 ----------------------------------------------
+web3_url         = "http://my.goerli-geth.dnp.dappnode.eth:8545"
+
+# client type
+# "geth_clique" for geth PoS
+# "geth_pow"    for geth PoW
+# "geth"        to autodetect geth_clique and geth_pow
+web3_client      = "geth_clique"
+
+# process internal txs, true or false
+# in geth requieres:
+#   --syncmode=full
+#   --gcmode=archive
+#   --rpcapi debug 
+web3_itx  = false
+
+# compiler ------------------------------------------
+
+# the path where solc binaries are stored (optional)
+# solc_path = 
+solc_bypass = true
+
+# server --------------------------------------------
+
+# http server binding (e.g. "0.0.0.0:8000")
+bind         = "0.0.0.0:80" 
+
+# names ---------------------------------------------
+
+# multiple named_address entries can be added to name accouts
+#[[named_address]]
+#name =    
+#address = 
+
+[[named_address]]
+name="parity"
+address="0xe0a2Bd4258D2768837BAa26A28fE71Dc079f84c7"
+
+[[named_address]]
+name="Nethermind"
+address="0x4c2ae482593505f0163cdeFc073e81c63CdA4107"
+
+[[named_address]]
+name="POA"
+address="0x000000568b9b5A365eaa767d42e74ED88915C204"
+
+[[named_address]]
+name="Dapowerplay"
+address="0xA8e8F14732658E4B51E8711931053a8A69BaF2B1"
+
+[[named_address]]
+name="Prysm Labs"
+address="0xD9A5179F091d85051d3C982785Efd1455CEc8699"
+
+[[named_address]]
+name="Yucong Sun"
+address="0x631AE5c534fE7b35aaF5243b54e5ac0CFc44E04C"
+
+[[named_address]]
+name="Infura"
+address="0x8b24Eb4E6aAe906058242D83e51fB077370c4720"
+
+[[named_address]]
+name="Pantheon"
+address="0x22eA9f6b28DB76A7162054c05ed812dEb2f519Cd"

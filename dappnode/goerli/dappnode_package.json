@@ -1,0 +1,26 @@
+{
+  "name": "goerli-tesseracts.public.dappnode.eth",
+  "version": "0.1.0",
+  "description": "tesseracts goerli block explorer",
+  "avatar": "/ipfs/QmavotGftsdSp3mWEHZfTYr7FkioYYorXLKh67zN5RCWh8",
+  "type": "service",
+  "image": {
+    "restart": "always",
+    "volumes": [
+      "/data"
+    ],
+    "ports": [
+      "80:80"
+    ],
+    "keywords": [
+      "BlockExplorer",
+      "Geth"
+    ],
+    "path": "goerli-tesseracts.public.dappnode.eth_0.1.0.tar.xz",
+    "hash": "/ipfs/QmbnBmkNvyRU8Sg8gjtGB92HexUHaUjJ8tnPZDbe8Ej4bp",
+    "size": 35371376
+  },
+  "author": "@codecontext",
+  "license": "GPLv3",
+  "dependencies": {}
+}
