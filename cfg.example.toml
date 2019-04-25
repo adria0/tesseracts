@@ -49,6 +49,9 @@ web3_itx  =
 # the path where solc binaries are stored (optional)
 solc_path = 
 
+# solidity compiler can be bypassedi, by specifing the abi
+solc_bypass = 
+
 # server --------------------------------------------
 
 # http server binding (e.g. "0.0.0.0:8000")
