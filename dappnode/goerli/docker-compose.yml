@@ -1,7 +1,7 @@
 version: '3.4'
 services:
     goerli-tesseracts.public.dappnode.eth:
-        image: 'goerli-tesseracts.public.dappnode.eth:0.1.0'
+        image: 'goerli-tesseracts.public.dappnode.eth:0.1.1'
         build: ./build
         volumes:
             - /data

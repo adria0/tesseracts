@@ -24,7 +24,7 @@ db_store_tx      = false
 db_store_itx     = false
 
 # store list of last non empty blocks? (bool)
-db_store_neb     = false
+db_store_neb     = true
 
 # web3 ----------------------------------------------
 web3_url         = "http://my.goerli-geth.dnp.dappnode.eth:8545"
@@ -91,3 +91,7 @@ address="0x8b24Eb4E6aAe906058242D83e51fB077370c4720"
 [[named_address]]
 name="Pantheon"
 address="0x22eA9f6b28DB76A7162054c05ed812dEb2f519Cd"
+
+[[named_address]]
+name="Ethereum Foundation"
+address="0xa6DD2974B96e959F2c8930024451a30aFEC24203"
