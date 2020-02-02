@@ -1,6 +1,7 @@
 ![](https://www.rust-lang.org/logos/rust-logo-32x32-blk.png)
 ![Rust](https://github.com/adria0/tesseracts/workflows/Rust/badge.svg)
 [![Docker build](https://img.shields.io/docker/automated/adria0/tesseracts.svg?style=flat)](https://cloud.docker.com/repository/docker/adria0/tesseracts)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # Tesseracts
 A minimalistic block explorer initially created to learn rust.
