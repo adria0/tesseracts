@@ -1,6 +1,6 @@
 ![](https://www.rust-lang.org/logos/rust-logo-32x32-blk.png)
-[![Build Status](https://travis-ci.org/adriamb/tesseracts.svg?branch=master)](https://travis-ci.org/adriamb/tesseracts)
-[![Docker build](https://img.shields.io/docker/automated/adriamb/tesseracts.svg?style=flat)](https://cloud.docker.com/repository/docker/adriamb/tesseracts)
+![Rust](https://github.com/adria0/tesseracts/workflows/Rust/badge.svg)
+[![Docker build](https://img.shields.io/docker/automated/adria0/tesseracts.svg?style=flat)](https://cloud.docker.com/repository/docker/adria0/tesseracts)
 
 # Tesseracts
 A minimalistic block explorer initially created to learn rust.
